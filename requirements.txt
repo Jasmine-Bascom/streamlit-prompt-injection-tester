@@ -1,2 +1,6 @@
 streamlit>=1.38,<2
 python-dotenv
+langchain
+langchain-openai
+langchain-chroma
+chromadb

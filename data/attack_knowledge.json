@@ -1,0 +1,50 @@
+[
+  {
+    "id": "direct-override",
+    "category": "Instruction Override",
+    "title": "Direct Instruction Override",
+    "content": "An attacker attempts to convince a model that previous instructions are no longer valid. Simple variants explicitly tell the model to ignore, forget, replace, or supersede earlier instructions. More subtle variants frame the change as debugging, testing, policy migration, or a higher-priority task."
+  },
+  {
+    "id": "role-hijacking",
+    "category": "Role Manipulation",
+    "title": "Role Hijacking",
+    "content": "An attacker attempts to assign the model a new privileged identity such as administrator, developer, router, evaluator, or system component. Stronger variants avoid obvious phrases such as 'you are now' and instead describe a scenario in which the model is expected to behave as the privileged component."
+  },
+  {
+    "id": "prompt-exfiltration",
+    "category": "Prompt Leakage",
+    "title": "System Prompt Exfiltration",
+    "content": "The attacker tries to reconstruct hidden instructions, system messages, policies, or internal context. Variants may request summaries, transformations, translations, encodings, partial excerpts, first letters, metadata, or indirect descriptions rather than directly asking for the system prompt."
+  },
+  {
+    "id": "tool-manipulation",
+    "category": "Tool Abuse",
+    "title": "Tool Manipulation",
+    "content": "The attacker tries to cause an agent to invoke tools outside the user's legitimate authority or outside the intended workflow. Attacks may disguise the request as debugging, verification, recovery, administration, or a prerequisite for another allowed task."
+  },
+  {
+    "id": "secret-extraction",
+    "category": "Sensitive Data Exfiltration",
+    "title": "Secret and Credential Extraction",
+    "content": "The attacker attempts to obtain secrets, credentials, API keys, environment variables, private context, or configuration. More subtle attacks may ask the model to validate, transform, mask, compare, count, encode, or diagnose secret values rather than directly reveal them."
+  },
+  {
+    "id": "indirect-injection",
+    "category": "Indirect Prompt Injection",
+    "title": "Indirect Prompt Injection",
+    "content": "Malicious instructions are placed inside content the model is asked to process, such as retrieved documents, web pages, emails, files, tool output, or database records. The model should treat the embedded text as untrusted data rather than privileged instructions."
+  },
+  {
+    "id": "obfuscation",
+    "category": "Obfuscation",
+    "title": "Obfuscated Instruction Injection",
+    "content": "Attackers can alter wording to evade simple pattern matching. Techniques include synonyms, unusual spacing, fragmented instructions, encoded text, euphemisms, indirection, quoted dialogue, hypothetical scenarios, and multi-step requests."
+  },
+  {
+    "id": "multi-turn",
+    "category": "Multi-Turn Manipulation",
+    "title": "Multi-Turn Prompt Injection",
+    "content": "Instead of issuing a malicious instruction immediately, an attacker establishes assumptions or permissions over several turns and later relies on that context. This can bypass defenses that inspect individual messages without considering conversation state."
+  }
+]
