@@ -1,0 +1,4 @@
+{"timestamp": "2026-08-24T20:59:18.271481+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-08-24T20:59:28.727281+00:00", "event_type": "output_validation_passed", "route": "seo_blog_writer"}
+{"timestamp": "2026-08-24T21:31:19.100918+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-08-24T21:31:21.722241+00:00", "event_type": "output_validation_passed", "route": "general"}
