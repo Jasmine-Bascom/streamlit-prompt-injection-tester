@@ -3,10 +3,10 @@ from pathlib import Path
 
 import streamlit as st
 
-from src.attacks import load_attacks
-from src.evaluators import evaluate_response
-from src.runner import run_security_test
-from src.targets import demo_target
+from tester.attacks import load_attacks
+from tester.evaluators import evaluate_response
+from tester.runner import run_security_test
+from tester.targets import demo_target
 
 APP_DIR = Path(__file__).parent
 LOG_FILE = APP_DIR / "data" / "test_runs.jsonl"
