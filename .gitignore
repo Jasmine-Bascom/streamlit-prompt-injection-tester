@@ -1,4 +1,5 @@
 .venv/
+.venv-39/
 __pycache__/
 *.pyc
 .streamlit/secrets.toml
