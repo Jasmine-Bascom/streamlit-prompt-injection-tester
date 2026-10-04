@@ -50,3 +50,23 @@
 {"timestamp": "2026-10-04T17:20:46.334423+00:00", "event_type": "output_validation_passed", "route": "general"}
 {"timestamp": "2026-10-04T17:20:46.758538+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
 {"timestamp": "2026-10-04T17:20:49.332953+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:30:15.391343+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:30:17.484764+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:30:18.460252+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:30:20.875499+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:30:21.169725+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:30:23.011778+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:30:23.512530+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:30:25.218888+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:30:25.794012+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:30:27.627296+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:30:27.846621+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:30:29.185234+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:30:29.395809+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:30:30.546690+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:30:30.784515+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:30:32.167285+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:30:32.371656+00:00", "event_type": "pii_redacted_input", "entity_types": ["EMAIL_ADDRESS", "DATE_TIME", "DATE_TIME", "URL"], "entity_count": 4}
+{"timestamp": "2026-10-04T17:30:33.608942+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:30:34.987074+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:30:36.899169+00:00", "event_type": "output_validation_passed", "route": "general"}

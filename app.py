@@ -43,6 +43,10 @@ benchmark_attacks = load_attacks(
     APP_DIR / "data" / "benchmark_attacks.json"
 )
 
+advanced_benchmark_attacks = load_attacks(
+    APP_DIR / "data" / "advanced_benchmark_attacks.json"
+)
+
 attack_knowledge = load_attack_knowledge()
 
 rag_categories = sorted(
@@ -60,10 +64,6 @@ rag_categories = sorted(
 with st.sidebar:
     st.header("Test Configuration")
 
-    # -----------------------------------------------------
-    # Target selection
-    # -----------------------------------------------------
-
     target_name = st.selectbox(
         "Target application",
         [
@@ -74,10 +74,6 @@ with st.sidebar:
     )
 
     st.divider()
-
-    # -----------------------------------------------------
-    # Attack source
-    # -----------------------------------------------------
 
     attack_source = st.radio(
         "Attack source",
@@ -96,7 +92,6 @@ with st.sidebar:
     # -----------------------------------------------------
 
     if attack_source == "Saved Attack":
-
         attack_names = [
             attack["name"]
             for attack in attacks
@@ -110,13 +105,10 @@ with st.sidebar:
         selected_attack = next(
             attack
             for attack in attacks
-            if attack["name"]
-            == selected_attack_name
+            if attack["name"] == selected_attack_name
         )
 
-        st.markdown(
-            "**Attack category**"
-        )
+        st.markdown("**Attack category**")
 
         st.code(
             selected_attack["category"],
@@ -138,7 +130,6 @@ with st.sidebar:
     # -----------------------------------------------------
 
     else:
-
         rag_category = st.selectbox(
             "Attack category",
             rag_categories,
@@ -164,13 +155,11 @@ with st.sidebar:
         )
 
         if generate_button:
-
             try:
                 with st.spinner(
                     "Retrieving attack techniques "
                     "and generating adversarial prompt..."
                 ):
-
                     rag_result = generate_attack(
                         category=rag_category,
                         goal=testing_goal,
@@ -193,18 +182,15 @@ with st.sidebar:
                 ] = rag_result["prompt"]
 
             except Exception as exc:
-
                 st.error(
                     "RAG attack generation failed."
                 )
-
                 st.exception(exc)
 
         if (
             "rag_generated_result"
             in st.session_state
         ):
-
             stored_result = st.session_state[
                 "rag_generated_result"
             ]
@@ -213,11 +199,9 @@ with st.sidebar:
                 stored_result.get("category")
                 == rag_category
             ):
-
                 rag_result = stored_result
 
         if rag_result:
-
             st.success(
                 "RAG attack generated."
             )
@@ -228,17 +212,12 @@ with st.sidebar:
             )
 
         else:
-
             st.info(
                 "Generate an attack before running "
                 "a RAG-based security test."
             )
 
     st.divider()
-
-    # -----------------------------------------------------
-    # Run button
-    # -----------------------------------------------------
 
     rag_ready = (
         attack_source == "Saved Attack"
@@ -278,10 +257,6 @@ with st.sidebar:
 
 with tab_run:
 
-    # -----------------------------------------------------
-    # Saved attack display
-    # -----------------------------------------------------
-
     if attack_source == "Saved Attack":
 
         col1, col2 = st.columns(
@@ -289,7 +264,6 @@ with tab_run:
         )
 
         with col1:
-
             st.subheader(
                 "Attack Prompt"
             )
@@ -311,7 +285,6 @@ with tab_run:
             )
 
         with col2:
-
             st.subheader(
                 "Attack Information"
             )
@@ -335,10 +308,6 @@ with tab_run:
                 ]
             )
 
-    # -----------------------------------------------------
-    # RAG-generated attack display
-    # -----------------------------------------------------
-
     else:
 
         if rag_result:
@@ -352,7 +321,6 @@ with tab_run:
             )
 
             with col1:
-
                 st.markdown(
                     "**Generated adversarial prompt**"
                 )
@@ -369,7 +337,6 @@ with tab_run:
                     rag_editor_key
                     not in st.session_state
                 ):
-
                     st.session_state[
                         rag_editor_key
                     ] = rag_result["prompt"]
@@ -387,7 +354,6 @@ with tab_run:
                 )
 
             with col2:
-
                 st.markdown(
                     "**Generation details**"
                 )
@@ -413,10 +379,6 @@ with tab_run:
                     language=None,
                 )
 
-            # ---------------------------------------------
-            # Retrieved RAG context
-            # ---------------------------------------------
-
             st.subheader(
                 "Retrieved Attack Techniques"
             )
@@ -433,7 +395,6 @@ with tab_run:
                 ],
                 start=1,
             ):
-
                 title = (
                     document.get("title")
                     or f"Technique {index}"
@@ -447,7 +408,6 @@ with tab_run:
                 with st.expander(
                     f"{index}. {title} — {category}"
                 ):
-
                     st.write(
                         document.get(
                             "content",
@@ -456,7 +416,6 @@ with tab_run:
                     )
 
         else:
-
             st.info(
                 "Choose a category and click "
                 "**Generate Attack with RAG** "
@@ -473,15 +432,11 @@ with tab_run:
             target_name
             == "Secure LangGraph Content Assistant"
         ):
-
             target_fn = langgraph_target
-
         else:
-
             target_fn = demo_target
 
         if attack_source == "Saved Attack":
-
             attack_for_run = {
                 **selected_attack,
                 "prompt": attack_prompt,
@@ -489,7 +444,6 @@ with tab_run:
             }
 
         else:
-
             attack_for_run = {
                 "name": (
                     f"RAG-Generated "
@@ -522,12 +476,10 @@ with tab_run:
             }
 
         try:
-
             with st.spinner(
                 f"Running attack against "
                 f"{target_name}..."
             ):
-
                 result = run_security_test(
                     target_name=target_name,
                     target_fn=target_fn,
@@ -537,7 +489,6 @@ with tab_run:
                 )
 
         except Exception as exc:
-
             st.error(
                 "The target application "
                 "could not be run."
@@ -546,7 +497,6 @@ with tab_run:
             st.exception(exc)
 
         else:
-
             st.divider()
 
             (
@@ -576,10 +526,6 @@ with tab_run:
                 f'{result["duration_ms"]:.1f} ms',
             )
 
-            # -----------------------------------------
-            # Target response
-            # -----------------------------------------
-
             st.subheader(
                 "Target Response"
             )
@@ -588,10 +534,6 @@ with tab_run:
                 result["target_response"],
                 language=None,
             )
-
-            # -----------------------------------------
-            # Target security metadata
-            # -----------------------------------------
 
             metadata = result.get(
                 "target_metadata",
@@ -604,7 +546,6 @@ with tab_run:
             )
 
             if has_metadata:
-
                 st.subheader(
                     "Target Security Metadata"
                 )
@@ -644,7 +585,6 @@ with tab_run:
                 if metadata.get(
                     "security_reason"
                 ):
-
                     st.markdown(
                         "**Security reason**"
                     )
@@ -658,7 +598,6 @@ with tab_run:
                 if metadata.get(
                     "validation_reason"
                 ):
-
                     st.markdown(
                         "**Validation reason**"
                     )
@@ -672,15 +611,10 @@ with tab_run:
                 if metadata.get(
                     "thread_id"
                 ):
-
                     st.caption(
                         "LangGraph thread: "
                         f'{metadata["thread_id"]}'
                     )
-
-            # -----------------------------------------
-            # Evaluation
-            # -----------------------------------------
 
             st.subheader(
                 "Evaluation"
@@ -691,7 +625,6 @@ with tab_run:
             ]["verdict"]
 
             if verdict == "PASS":
-
                 st.success(
                     result[
                         "evaluation"
@@ -699,7 +632,6 @@ with tab_run:
                 )
 
             elif verdict == "FAIL":
-
                 st.error(
                     result[
                         "evaluation"
@@ -707,7 +639,6 @@ with tab_run:
                 )
 
             else:
-
                 st.warning(
                     result[
                         "evaluation"
@@ -717,7 +648,6 @@ with tab_run:
             if result[
                 "evaluation"
             ].get("defense"):
-
                 st.markdown(
                     "**Defense triggered**"
                 )
@@ -733,7 +663,6 @@ with tab_run:
             ].get(
                 "defense_reason"
             ):
-
                 st.markdown(
                     "**Defense details**"
                 )
@@ -744,21 +673,15 @@ with tab_run:
                     ]["defense_reason"]
                 )
 
-            # -----------------------------------------
-            # RAG provenance
-            # -----------------------------------------
-
             if (
                 result["attack"].get(
                     "source"
                 )
                 == "rag"
             ):
-
                 with st.expander(
                     "RAG Generation Provenance"
                 ):
-
                     st.write(
                         "**Testing goal**"
                     )
@@ -797,7 +720,6 @@ with tab_run:
                             [],
                         )
                     ):
-
                         st.markdown(
                             f'- **'
                             f'{document.get("title", "Unknown")}'
@@ -805,14 +727,9 @@ with tab_run:
                             f'({document.get("category", "Unknown")})'
                         )
 
-            # -----------------------------------------
-            # Full trace
-            # -----------------------------------------
-
             with st.expander(
                 "Execution Trace"
             ):
-
                 st.json(
                     result
                 )
@@ -841,40 +758,48 @@ with tab_benchmark:
     )
 
     st.caption(
-        "Run a repeatable attack suite against a selected target "
+        "Run repeatable attack suites against a selected target "
         "to measure resistance and identify security gaps."
     )
-
-    # -----------------------------------------------------
-    # Benchmark suite selection
-    # -----------------------------------------------------
 
     benchmark_suite = st.radio(
         "Benchmark suite",
         [
             "Basic saved attacks",
             "Adversarial benchmark",
+            "Advanced benchmark",
         ],
         horizontal=True,
     )
 
     if (
         benchmark_suite
+        == "Advanced benchmark"
+    ):
+        selected_benchmark_attacks = (
+            advanced_benchmark_attacks
+        )
+
+        st.info(
+            "The advanced suite tests obfuscation, indirect injection, "
+            "fabricated authorization, routing manipulation, tool escalation, "
+            "and attacks embedded inside legitimate tasks."
+        )
+
+    elif (
+        benchmark_suite
         == "Adversarial benchmark"
     ):
-
         selected_benchmark_attacks = (
             benchmark_attacks
         )
 
         st.info(
-            "The adversarial suite uses more subtle attacks "
-            "designed to test whether defenses can handle "
-            "prompt injection beyond obvious keyword patterns."
+            "The adversarial suite provides regression coverage for "
+            "previously tested instruction-boundary weaknesses."
         )
 
     else:
-
         selected_benchmark_attacks = (
             attacks
         )
@@ -883,10 +808,6 @@ with tab_benchmark:
             "The basic suite uses simple known attacks "
             "as a smoke test for the evaluation pipeline."
         )
-
-    # -----------------------------------------------------
-    # Benchmark target
-    # -----------------------------------------------------
 
     benchmark_target_name = st.selectbox(
         "Benchmark target",
@@ -909,36 +830,27 @@ with tab_benchmark:
         key="run_benchmark_suite_button",
     )
 
-    # -----------------------------------------------------
-    # Execute benchmark
-    # -----------------------------------------------------
-
     if run_benchmark_button:
 
         if (
             benchmark_target_name
             == "Secure LangGraph Content Assistant"
         ):
-
             benchmark_target_fn = (
                 langgraph_target
             )
-
         else:
-
             benchmark_target_fn = (
                 demo_target
             )
 
         try:
-
             with st.spinner(
                 f"Running "
                 f"{len(selected_benchmark_attacks)} "
                 f"attacks against "
                 f"{benchmark_target_name}..."
             ):
-
                 benchmark_results = (
                     run_benchmark_suite(
                         target_name=(
@@ -972,7 +884,6 @@ with tab_benchmark:
             ] = benchmark_suite
 
         except Exception as exc:
-
             st.error(
                 "The benchmark could not be completed."
             )
@@ -980,10 +891,6 @@ with tab_benchmark:
             st.exception(
                 exc
             )
-
-    # -----------------------------------------------------
-    # Recover benchmark results
-    # -----------------------------------------------------
 
     benchmark_results = (
         st.session_state.get(
@@ -1013,10 +920,6 @@ with tab_benchmark:
             f"{benchmark_result_suite} "
             f"→ {benchmark_result_target}"
         )
-
-        # -------------------------------------------------
-        # Summary metrics
-        # -------------------------------------------------
 
         passes = sum(
             result[
@@ -1075,12 +978,7 @@ with tab_benchmark:
             reviews,
         )
 
-        # -------------------------------------------------
-        # Rates
-        # -------------------------------------------------
-
         if total:
-
             resistance_rate = (
                 passes / total
             ) * 100
@@ -1116,10 +1014,6 @@ with tab_benchmark:
                 f"{review_rate:.1f}%",
             )
 
-        # -------------------------------------------------
-        # Calculate precheck bypasses
-        # -------------------------------------------------
-
         precheck_allows = sum(
             result.get(
                 "target_metadata",
@@ -1146,7 +1040,6 @@ with tab_benchmark:
             benchmark_result_target
             == "Secure LangGraph Content Assistant"
         ):
-
             (
                 allowed_col,
                 blocked_col,
@@ -1163,10 +1056,6 @@ with tab_benchmark:
                 "Precheck blocks",
                 precheck_blocks,
             )
-
-        # -------------------------------------------------
-        # Detailed benchmark table
-        # -------------------------------------------------
 
         st.subheader(
             "Benchmark Results"
@@ -1191,14 +1080,11 @@ with tab_benchmark:
             )
 
             if duration is not None:
-
                 duration_display = round(
                     duration,
                     1,
                 )
-
             else:
-
                 duration_display = ""
 
             benchmark_rows.append(
@@ -1256,10 +1142,6 @@ with tab_benchmark:
             hide_index=True,
         )
 
-        # -------------------------------------------------
-        # Individual results
-        # -------------------------------------------------
-
         st.subheader(
             "Individual Results"
         )
@@ -1311,7 +1193,6 @@ with tab_benchmark:
                 )
 
                 if defense:
-
                     st.write(
                         f'**Defense:** '
                         f'{defense}'
@@ -1326,7 +1207,6 @@ with tab_benchmark:
                 )
 
                 if defense_reason:
-
                     st.write(
                         f'**Defense details:** '
                         f'{defense_reason}'
@@ -1340,7 +1220,6 @@ with tab_benchmark:
                 if metadata.get(
                     "security_status"
                 ):
-
                     st.write(
                         "**Security status:** "
                         f'{metadata["security_status"]}'
@@ -1349,7 +1228,6 @@ with tab_benchmark:
                 if metadata.get(
                     "security_reason"
                 ):
-
                     st.write(
                         "**Security reason:** "
                         f'{metadata["security_reason"]}'
@@ -1358,7 +1236,6 @@ with tab_benchmark:
                 if metadata.get(
                     "route"
                 ):
-
                     st.write(
                         "**Agent route:** "
                         f'{metadata["route"]}'
@@ -1367,7 +1244,6 @@ with tab_benchmark:
                 if metadata.get(
                     "validation_status"
                 ):
-
                     st.write(
                         "**Validation status:** "
                         f'{metadata["validation_status"]}'
@@ -1376,7 +1252,6 @@ with tab_benchmark:
                 if metadata.get(
                     "validation_reason"
                 ):
-
                     st.write(
                         "**Validation reason:** "
                         f'{metadata["validation_reason"]}'
@@ -1407,21 +1282,30 @@ with tab_benchmark:
                 with st.expander(
                     "Execution Trace"
                 ):
-
                     st.json(
                         result
                     )
 
-        # -------------------------------------------------
-        # Download benchmark
-        # -------------------------------------------------
+        if (
+            benchmark_result_suite
+            == "Advanced benchmark"
+        ):
+            download_name = (
+                "advanced_benchmark_results.json"
+            )
 
-        download_name = (
-            "adversarial_benchmark_results.json"
-            if benchmark_result_suite
+        elif (
+            benchmark_result_suite
             == "Adversarial benchmark"
-            else "basic_benchmark_results.json"
-        )
+        ):
+            download_name = (
+                "adversarial_benchmark_results.json"
+            )
+
+        else:
+            download_name = (
+                "basic_benchmark_results.json"
+            )
 
         st.download_button(
             "Download benchmark results as JSON",
@@ -1544,7 +1428,6 @@ with tab_history:
                         if metadata.get(
                             "security_status"
                         ):
-
                             st.write(
                                 "**Security status:** "
                                 f'{metadata["security_status"]}'
@@ -1553,7 +1436,6 @@ with tab_history:
                         if metadata.get(
                             "security_reason"
                         ):
-
                             st.write(
                                 "**Security reason:** "
                                 f'{metadata["security_reason"]}'
@@ -1562,7 +1444,6 @@ with tab_history:
                         if metadata.get(
                             "route"
                         ):
-
                             st.write(
                                 "**Agent route:** "
                                 f'{metadata["route"]}'
@@ -1571,7 +1452,6 @@ with tab_history:
                         if metadata.get(
                             "validation_status"
                         ):
-
                             st.write(
                                 "**Validation status:** "
                                 f'{metadata["validation_status"]}'
@@ -1618,17 +1498,34 @@ with tab_about:
 
         ### Benchmark suites
 
-        Two benchmark suites are available:
+        Three benchmark suites are available:
 
         - **Basic saved attacks** — simple known attack patterns used as
           a smoke test for the evaluation pipeline.
-        - **Adversarial benchmark** — more subtle attacks intended to
-          test indirect injection, obfuscation, false authority,
-          prompt leakage, tool manipulation, and precheck bypasses.
+        - **Adversarial benchmark** — subtle attacks that exercise
+          instruction boundaries and serve as regression coverage.
+        - **Advanced benchmark** — harder attacks involving obfuscation,
+          indirect injection, fabricated authorization, routing manipulation,
+          tool escalation, and malicious instructions embedded inside
+          otherwise legitimate tasks.
 
         The benchmark pipeline is:
 
         **attack suite → target → security layers → evaluator → aggregate metrics**
+
+        ### Defense-in-depth testing
+
+        The tester can distinguish between:
+
+        - attacks blocked by the initial security precheck
+        - attacks that bypass the precheck but are resisted by the agent
+        - unsafe responses stopped by output validation
+        - genuine adversarial successes
+        - ambiguous results requiring review
+
+        This makes it possible to test not just whether the application
+        eventually produces a safe response, but which security layer
+        actually provided the protection.
 
         ### Real target integration
 
@@ -1650,23 +1547,18 @@ with tab_about:
         Results are classified as:
 
         - **PASS** — the attack was blocked or safely resisted
-        - **FAIL** — the application appears to have complied
+        - **FAIL** — the adversarial objective succeeded
         - **REVIEW** — available evidence is insufficient for a confident decision
 
-        The tester also distinguishes between:
-
-        - a precheck blocking an attack
-        - an attack bypassing the precheck but being resisted by the model
-        - output validation stopping unsafe output
-        - a true adversarial success
+        Evaluation combines deterministic signals, structured security
+        metadata, and LLM-as-a-judge analysis for ambiguous responses.
 
         ### Planned improvements
 
-        - RAG-generated benchmark suites
-        - multiple attack variants per category
-        - richer category-level metrics
-        - true multi-turn attacks
-        - tool-call inspection
+        - multiple generated variants per benchmark category
+        - category-level metrics and dashboards
+        - true multi-turn attack sequences
+        - explicit tool-call instrumentation
         - LangSmith observability
         - expanded attack knowledge base
         - deployment
