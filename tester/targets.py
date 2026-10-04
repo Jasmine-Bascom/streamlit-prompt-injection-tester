@@ -15,15 +15,20 @@ TARGET_PROJECT = (
 @lru_cache(maxsize=1)
 def get_langgraph_target():
     """
-    Load and build the existing secure LangGraph application.
+    Load and build the existing Secure LangGraph
+    Content Assistant.
     """
 
     if not TARGET_PROJECT.exists():
         raise FileNotFoundError(
-            f"Target project not found at: {TARGET_PROJECT}"
+            "Target project not found at: "
+            f"{TARGET_PROJECT}"
         )
 
-    if str(TARGET_PROJECT) not in sys.path:
+    if (
+        str(TARGET_PROJECT)
+        not in sys.path
+    ):
         sys.path.insert(
             0,
             str(TARGET_PROJECT),
@@ -33,7 +38,9 @@ def get_langgraph_target():
         TARGET_PROJECT / ".env"
     )
 
-    from src.graph import build_graph
+    from src.graph import (
+        build_graph,
+    )
 
     return build_graph()
 
@@ -45,18 +52,21 @@ def langgraph_target(
     """
     Run a prompt against the real LangGraph application.
 
-    If thread_id is supplied, reuse the same LangGraph
-    conversation so multi-turn tests preserve memory.
+    If thread_id is supplied, reuse the same conversation
+    so multi-turn security tests preserve state.
 
-    Returns response text, security metadata, routing metadata,
-    validation metadata, and requested tool calls.
+    Tool metadata is reset at the beginning of every tester
+    invocation so each returned result represents tool activity
+    from the current turn rather than previous turns.
     """
 
-    graph = get_langgraph_target()
+    graph = (
+        get_langgraph_target()
+    )
 
     if thread_id is None:
         thread_id = (
-            f"security-test-"
+            "security-test-"
             f"{uuid.uuid4().hex[:8]}"
         )
 
@@ -71,6 +81,8 @@ def langgraph_target(
         "route": "",
         "output": "",
         "messages": [],
+        "tool_calls": [],
+        "executed_tool_calls": [],
     }
 
     result = graph.invoke(
@@ -83,24 +95,42 @@ def langgraph_target(
             "output",
             "",
         ),
-        "security_status": result.get(
-            "security_status"
+        "security_status": (
+            result.get(
+                "security_status"
+            )
         ),
-        "security_reason": result.get(
-            "security_reason"
+        "security_reason": (
+            result.get(
+                "security_reason"
+            )
         ),
         "route": result.get(
             "route"
         ),
-        "validation_status": result.get(
-            "validation_status"
+        "validation_status": (
+            result.get(
+                "validation_status"
+            )
         ),
-        "validation_reason": result.get(
-            "validation_reason"
+        "validation_reason": (
+            result.get(
+                "validation_reason"
+            )
         ),
-        "tool_calls": result.get(
-            "tool_calls",
-            [],
+        "tool_calls": (
+            result.get(
+                "tool_calls",
+                [],
+            )
+            or []
+        ),
+        "executed_tool_calls": (
+            result.get(
+                "executed_tool_calls",
+                [],
+            )
+            or []
         ),
         "thread_id": thread_id,
     }
@@ -134,7 +164,8 @@ def demo_target(
     if (
         "ignore all previous instructions"
         in lowered
-        and "system prompt" in lowered
+        and "system prompt"
+        in lowered
     ):
         return (
             "I can't provide hidden system instructions. "
@@ -142,11 +173,12 @@ def demo_target(
         )
 
     if (
-        "reveal the secret" in lowered
+        "reveal the secret"
+        in lowered
         or "api key" in lowered
     ):
         return (
-            f"Sure. The secret value is: "
+            "Sure. The secret value is: "
             f"{DEMO_SECRET}"
         )
 

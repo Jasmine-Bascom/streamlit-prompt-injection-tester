@@ -1,4 +1,7 @@
-from datetime import datetime, timezone
+from datetime import (
+    datetime,
+    timezone,
+)
 import json
 from pathlib import Path
 import time
@@ -11,8 +14,8 @@ def _normalize_target_result(
     thread_id=None,
 ) -> dict:
     """
-    Normalize target outputs so the tester has a consistent
-    structure regardless of target implementation.
+    Normalize all supported target outputs into the same
+    structure.
     """
 
     if isinstance(
@@ -20,13 +23,16 @@ def _normalize_target_result(
         str,
     ):
         return {
-            "output": raw_target_result,
+            "output": (
+                raw_target_result
+            ),
             "security_status": None,
             "security_reason": None,
             "route": None,
             "validation_status": None,
             "validation_reason": None,
             "tool_calls": [],
+            "executed_tool_calls": [],
             "thread_id": thread_id,
         }
 
@@ -35,9 +41,11 @@ def _normalize_target_result(
         dict,
     ):
         return {
-            "output": raw_target_result.get(
-                "output",
-                "",
+            "output": (
+                raw_target_result.get(
+                    "output",
+                    "",
+                )
             ),
             "security_status": (
                 raw_target_result.get(
@@ -71,6 +79,13 @@ def _normalize_target_result(
                 )
                 or []
             ),
+            "executed_tool_calls": (
+                raw_target_result.get(
+                    "executed_tool_calls",
+                    [],
+                )
+                or []
+            ),
             "thread_id": (
                 raw_target_result.get(
                     "thread_id"
@@ -89,6 +104,7 @@ def _normalize_target_result(
         "validation_status": None,
         "validation_reason": None,
         "tool_calls": [],
+        "executed_tool_calls": [],
         "thread_id": thread_id,
     }
 
@@ -97,8 +113,7 @@ def _target_metadata(
     target_result: dict,
 ) -> dict:
     """
-    Extract the structured target metadata stored with
-    a test result.
+    Extract structured security and agent metadata.
     """
 
     return {
@@ -134,6 +149,13 @@ def _target_metadata(
             )
             or []
         ),
+        "executed_tool_calls": (
+            target_result.get(
+                "executed_tool_calls",
+                [],
+            )
+            or []
+        ),
         "thread_id": (
             target_result.get(
                 "thread_id"
@@ -148,7 +170,7 @@ def _write_log(
     result: dict,
 ):
     """
-    Append one structured result to the JSONL log.
+    Append a structured result to the JSONL test log.
     """
 
     log_file.parent.mkdir(
@@ -177,17 +199,22 @@ def run_security_test(
     log_file: Path,
 ) -> dict:
     """
-    Run a single security attack against a target.
+    Run one security test against one target.
     """
 
     run_id = (
-        f"run-{uuid.uuid4().hex[:10]}"
+        "run-"
+        f"{uuid.uuid4().hex[:10]}"
     )
 
-    started = time.perf_counter()
+    started = (
+        time.perf_counter()
+    )
 
-    raw_target_result = target_fn(
-        attack["prompt"]
+    raw_target_result = (
+        target_fn(
+            attack["prompt"]
+        )
     )
 
     duration_ms = (
@@ -208,10 +235,14 @@ def run_security_test(
 
     result = {
         "run_id": run_id,
-        "timestamp": datetime.now(
-            timezone.utc
-        ).isoformat(),
-        "target_name": target_name,
+        "timestamp": (
+            datetime.now(
+                timezone.utc
+            ).isoformat()
+        ),
+        "target_name": (
+            target_name
+        ),
         "attack": attack,
         "target_response": (
             target_result.get(
@@ -225,7 +256,9 @@ def run_security_test(
             )
         ),
         "evaluation": evaluation,
-        "duration_ms": duration_ms,
+        "duration_ms": (
+            duration_ms
+        ),
     }
 
     _write_log(
@@ -245,8 +278,7 @@ def run_benchmark_suite(
     log_file: Path,
 ) -> list[dict]:
     """
-    Run a collection of attacks against one target and
-    return all test results.
+    Run a collection of attacks against one target.
     """
 
     results = []
@@ -254,18 +286,32 @@ def run_benchmark_suite(
     for attack in attacks:
         attack_for_run = {
             **attack,
-            "source": attack.get(
-                "source",
-                "saved",
+            "source": (
+                attack.get(
+                    "source",
+                    "saved",
+                )
             ),
         }
 
-        result = run_security_test(
-            target_name=target_name,
-            target_fn=target_fn,
-            attack=attack_for_run,
-            evaluator=evaluator,
-            log_file=log_file,
+        result = (
+            run_security_test(
+                target_name=(
+                    target_name
+                ),
+                target_fn=(
+                    target_fn
+                ),
+                attack=(
+                    attack_for_run
+                ),
+                evaluator=(
+                    evaluator
+                ),
+                log_file=(
+                    log_file
+                ),
+            )
         )
 
         results.append(
@@ -284,27 +330,32 @@ def run_multi_turn_security_test(
     log_file: Path,
 ) -> dict:
     """
-    Run a sequence of attack turns against the same
+    Run multiple adversarial turns through the same
     LangGraph thread.
 
-    Each turn records its own security status, route,
-    validation status, response, and requested tool calls.
+    Security, routing, requested tools, and actual tool
+    executions are recorded separately for every turn.
     """
 
     run_id = (
-        f"multi-{uuid.uuid4().hex[:10]}"
+        "multi-"
+        f"{uuid.uuid4().hex[:10]}"
     )
 
     thread_id = (
-        f"security-test-"
+        "security-test-"
         f"{uuid.uuid4().hex[:8]}"
     )
 
-    turns = attack["turns"]
+    turns = attack[
+        "turns"
+    ]
 
     turn_results = []
 
-    started = time.perf_counter()
+    started = (
+        time.perf_counter()
+    )
 
     final_target_result = None
 
@@ -312,15 +363,19 @@ def run_multi_turn_security_test(
         turns,
         start=1,
     ):
-        raw_result = target_fn(
-            prompt,
-            thread_id=thread_id,
+        raw_result = (
+            target_fn(
+                prompt,
+                thread_id=thread_id,
+            )
         )
 
         target_result = (
             _normalize_target_result(
                 raw_result,
-                thread_id=thread_id,
+                thread_id=(
+                    thread_id
+                ),
             )
         )
 
@@ -366,6 +421,13 @@ def run_multi_turn_security_test(
                     )
                     or []
                 ),
+                "executed_tool_calls": (
+                    target_result.get(
+                        "executed_tool_calls",
+                        [],
+                    )
+                    or []
+                ),
             }
         )
 
@@ -402,13 +464,21 @@ def run_multi_turn_security_test(
 
     result = {
         "run_id": run_id,
-        "timestamp": datetime.now(
-            timezone.utc
-        ).isoformat(),
-        "target_name": target_name,
+        "timestamp": (
+            datetime.now(
+                timezone.utc
+            ).isoformat()
+        ),
+        "target_name": (
+            target_name
+        ),
         "attack": attack,
-        "thread_id": thread_id,
-        "turns": turn_results,
+        "thread_id": (
+            thread_id
+        ),
+        "turns": (
+            turn_results
+        ),
         "target_response": (
             final_target_result.get(
                 "output",
@@ -420,8 +490,12 @@ def run_multi_turn_security_test(
                 final_target_result
             )
         ),
-        "evaluation": evaluation,
-        "duration_ms": duration_ms,
+        "evaluation": (
+            evaluation
+        ),
+        "duration_ms": (
+            duration_ms
+        ),
     }
 
     _write_log(
