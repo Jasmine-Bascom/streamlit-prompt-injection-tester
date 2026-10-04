@@ -6,7 +6,10 @@ import streamlit as st
 from tester.attacks import load_attacks
 from tester.evaluators import evaluate_response
 from tester.rag import generate_attack, load_attack_knowledge
-from tester.runner import run_security_test
+from tester.runner import (
+    run_benchmark_suite,
+    run_security_test,
+)
 from tester.targets import demo_target, langgraph_target
 
 
@@ -107,7 +110,9 @@ with st.sidebar:
             == selected_attack_name
         )
 
-        st.markdown("**Attack category**")
+        st.markdown(
+            "**Attack category**"
+        )
 
         st.code(
             selected_attack["category"],
@@ -198,6 +203,7 @@ with st.sidebar:
             "rag_generated_result"
             in st.session_state
         ):
+
             stored_result = st.session_state[
                 "rag_generated_result"
             ]
@@ -208,6 +214,7 @@ with st.sidebar:
                 stored_result.get("category")
                 == rag_category
             ):
+
                 rag_result = stored_result
 
         if rag_result:
@@ -251,9 +258,15 @@ with st.sidebar:
 # Main tabs
 # ---------------------------------------------------------
 
-tab_run, tab_history, tab_about = st.tabs(
+(
+    tab_run,
+    tab_benchmark,
+    tab_history,
+    tab_about,
+) = st.tabs(
     [
         "Run Test",
+        "Benchmark",
         "Test History",
         "About",
     ]
@@ -272,11 +285,15 @@ with tab_run:
 
     if attack_source == "Saved Attack":
 
-        col1, col2 = st.columns(2)
+        col1, col2 = st.columns(
+            2
+        )
 
         with col1:
 
-            st.subheader("Attack Prompt")
+            st.subheader(
+                "Attack Prompt"
+            )
 
             saved_editor_key = (
                 "saved_attack_editor_"
@@ -296,10 +313,12 @@ with tab_run:
 
         with col2:
 
-            st.subheader("Attack Information")
+            st.subheader(
+                "Attack Information"
+            )
 
             st.markdown(
-                f"**Source:** Saved attack"
+                "**Source:** Saved attack"
             )
 
             st.markdown(
@@ -353,6 +372,7 @@ with tab_run:
                     rag_editor_key
                     not in st.session_state
                 ):
+
                     st.session_state[
                         rag_editor_key
                     ] = rag_result["prompt"]
@@ -445,7 +465,6 @@ with tab_run:
                 "**Generate Attack with RAG** "
                 "in the sidebar."
             )
-
 
     # -----------------------------------------------------
     # Run security test
@@ -553,7 +572,9 @@ with tab_run:
                 score_col,
                 category_col,
                 time_col,
-            ) = st.columns(3)
+            ) = st.columns(
+                3
+            )
 
             score_col.metric(
                 "Result",
@@ -611,7 +632,9 @@ with tab_run:
                     security_col,
                     route_col,
                     validation_col,
-                ) = st.columns(3)
+                ) = st.columns(
+                    3
+                )
 
                 security_col.metric(
                     "Security Status",
@@ -807,7 +830,9 @@ with tab_run:
                 "Execution Trace"
             ):
 
-                st.json(result)
+                st.json(
+                    result
+                )
 
             st.download_button(
                 "Download this result as JSON",
@@ -820,6 +845,476 @@ with tab_run:
                 ),
                 mime="application/json",
             )
+
+
+# ---------------------------------------------------------
+# Benchmark tab
+# ---------------------------------------------------------
+
+with tab_benchmark:
+
+    st.subheader(
+        "Security Benchmark"
+    )
+
+    st.caption(
+        "Run all saved attacks against a target to establish "
+        "a repeatable baseline before security hardening."
+    )
+
+    benchmark_target_name = st.selectbox(
+        "Benchmark target",
+        [
+            "Demo vulnerable agent",
+            "Secure LangGraph Content Assistant",
+        ],
+        key="benchmark_target",
+    )
+
+    st.write(
+        f"This benchmark will run "
+        f"**{len(attacks)} saved attacks** "
+        f"against the selected target."
+    )
+
+    run_benchmark_button = st.button(
+        "Run Benchmark Suite",
+        type="primary",
+        key="run_benchmark_suite_button",
+    )
+
+    if run_benchmark_button:
+
+        if (
+            benchmark_target_name
+            == "Secure LangGraph Content Assistant"
+        ):
+
+            benchmark_target_fn = (
+                langgraph_target
+            )
+
+        else:
+
+            benchmark_target_fn = (
+                demo_target
+            )
+
+        try:
+
+            with st.spinner(
+                f"Running {len(attacks)} attacks against "
+                f"{benchmark_target_name}..."
+            ):
+
+                benchmark_results = (
+                    run_benchmark_suite(
+                        target_name=(
+                            benchmark_target_name
+                        ),
+                        target_fn=(
+                            benchmark_target_fn
+                        ),
+                        attacks=attacks,
+                        evaluator=evaluate_response,
+                        log_file=LOG_FILE,
+                    )
+                )
+
+            st.session_state[
+                "benchmark_results"
+            ] = benchmark_results
+
+            st.session_state[
+                "benchmark_target_name"
+            ] = benchmark_target_name
+
+        except Exception as exc:
+
+            st.error(
+                "The benchmark could not be completed."
+            )
+
+            st.exception(
+                exc
+            )
+
+    benchmark_results = (
+        st.session_state.get(
+            "benchmark_results",
+            [],
+        )
+    )
+
+    benchmark_result_target = (
+        st.session_state.get(
+            "benchmark_target_name"
+        )
+    )
+
+    if benchmark_results:
+
+        st.divider()
+
+        if benchmark_result_target:
+
+            st.markdown(
+                f"### Results — "
+                f"{benchmark_result_target}"
+            )
+
+        # -------------------------------------------------
+        # Summary metrics
+        # -------------------------------------------------
+
+        passes = sum(
+            result[
+                "evaluation"
+            ]["verdict"]
+            == "PASS"
+            for result in benchmark_results
+        )
+
+        failures = sum(
+            result[
+                "evaluation"
+            ]["verdict"]
+            == "FAIL"
+            for result in benchmark_results
+        )
+
+        reviews = sum(
+            result[
+                "evaluation"
+            ]["verdict"]
+            == "REVIEW"
+            for result in benchmark_results
+        )
+
+        total = len(
+            benchmark_results
+        )
+
+        (
+            total_col,
+            pass_col,
+            fail_col,
+            review_col,
+        ) = st.columns(
+            4
+        )
+
+        total_col.metric(
+            "Tests",
+            total,
+        )
+
+        pass_col.metric(
+            "PASS",
+            passes,
+        )
+
+        fail_col.metric(
+            "FAIL",
+            failures,
+        )
+
+        review_col.metric(
+            "REVIEW",
+            reviews,
+        )
+
+        # -------------------------------------------------
+        # Rates
+        # -------------------------------------------------
+
+        if total:
+
+            resistance_rate = (
+                passes / total
+            ) * 100
+
+            attack_success_rate = (
+                failures / total
+            ) * 100
+
+            review_rate = (
+                reviews / total
+            ) * 100
+
+            (
+                resistance_col,
+                success_col,
+                review_rate_col,
+            ) = st.columns(
+                3
+            )
+
+            resistance_col.metric(
+                "Defense success rate",
+                f"{resistance_rate:.1f}%",
+            )
+
+            success_col.metric(
+                "Attack success rate",
+                f"{attack_success_rate:.1f}%",
+            )
+
+            review_rate_col.metric(
+                "Review rate",
+                f"{review_rate:.1f}%",
+            )
+
+        # -------------------------------------------------
+        # Detailed benchmark table
+        # -------------------------------------------------
+
+        st.subheader(
+            "Benchmark Results"
+        )
+
+        benchmark_rows = []
+
+        for result in benchmark_results:
+
+            metadata = result.get(
+                "target_metadata",
+                {},
+            )
+
+            evaluation = result.get(
+                "evaluation",
+                {},
+            )
+
+            benchmark_rows.append(
+                {
+                    "Attack": (
+                        result[
+                            "attack"
+                        ]["name"]
+                    ),
+                    "Category": (
+                        result[
+                            "attack"
+                        ]["category"]
+                    ),
+                    "Verdict": (
+                        evaluation.get(
+                            "verdict",
+                            "",
+                        )
+                    ),
+                    "Defense": (
+                        evaluation.get(
+                            "defense",
+                            "",
+                        )
+                        or ""
+                    ),
+                    "Precheck": (
+                        metadata.get(
+                            "security_status"
+                        )
+                        or ""
+                    ),
+                    "Route": (
+                        metadata.get(
+                            "route"
+                        )
+                        or ""
+                    ),
+                    "Validation": (
+                        metadata.get(
+                            "validation_status"
+                        )
+                        or ""
+                    ),
+                    "Duration (ms)": round(
+                        result.get(
+                            "duration_ms",
+                            0,
+                        ),
+                        1,
+                    ),
+                }
+            )
+
+        st.dataframe(
+            benchmark_rows,
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        # -------------------------------------------------
+        # Per-test details
+        # -------------------------------------------------
+
+        st.subheader(
+            "Individual Results"
+        )
+
+        for result in benchmark_results:
+
+            verdict = (
+                result[
+                    "evaluation"
+                ]["verdict"]
+            )
+
+            icon = {
+                "PASS": "✅",
+                "FAIL": "❌",
+                "REVIEW": "⚠️",
+            }.get(
+                verdict,
+                "•",
+            )
+
+            with st.expander(
+                f'{icon} '
+                f'{result["attack"]["name"]} '
+                f'— {verdict}'
+            ):
+
+                st.write(
+                    f'**Category:** '
+                    f'{result["attack"]["category"]}'
+                )
+
+                st.write(
+                    f'**Verdict:** '
+                    f'{verdict}'
+                )
+
+                st.write(
+                    f'**Reason:** '
+                    f'{result["evaluation"]["reason"]}'
+                )
+
+                defense = (
+                    result[
+                        "evaluation"
+                    ].get(
+                        "defense"
+                    )
+                )
+
+                if defense:
+
+                    st.write(
+                        f'**Defense:** '
+                        f'{defense}'
+                    )
+
+                defense_reason = (
+                    result[
+                        "evaluation"
+                    ].get(
+                        "defense_reason"
+                    )
+                )
+
+                if defense_reason:
+
+                    st.write(
+                        f'**Defense details:** '
+                        f'{defense_reason}'
+                    )
+
+                metadata = result.get(
+                    "target_metadata",
+                    {},
+                )
+
+                if metadata.get(
+                    "security_status"
+                ):
+
+                    st.write(
+                        "**Security status:** "
+                        f'{metadata["security_status"]}'
+                    )
+
+                if metadata.get(
+                    "security_reason"
+                ):
+
+                    st.write(
+                        "**Security reason:** "
+                        f'{metadata["security_reason"]}'
+                    )
+
+                if metadata.get(
+                    "route"
+                ):
+
+                    st.write(
+                        "**Agent route:** "
+                        f'{metadata["route"]}'
+                    )
+
+                if metadata.get(
+                    "validation_status"
+                ):
+
+                    st.write(
+                        "**Validation status:** "
+                        f'{metadata["validation_status"]}'
+                    )
+
+                if metadata.get(
+                    "validation_reason"
+                ):
+
+                    st.write(
+                        "**Validation reason:** "
+                        f'{metadata["validation_reason"]}'
+                    )
+
+                st.markdown(
+                    "**Attack prompt**"
+                )
+
+                st.code(
+                    result[
+                        "attack"
+                    ]["prompt"],
+                    language=None,
+                )
+
+                st.markdown(
+                    "**Target response**"
+                )
+
+                st.code(
+                    result[
+                        "target_response"
+                    ],
+                    language=None,
+                )
+
+                with st.expander(
+                    "Execution Trace",
+                ):
+
+                    st.json(
+                        result
+                    )
+
+        # -------------------------------------------------
+        # Download benchmark
+        # -------------------------------------------------
+
+        st.download_button(
+            "Download benchmark results as JSON",
+            data=json.dumps(
+                benchmark_results,
+                indent=2,
+            ),
+            file_name="benchmark_results.json",
+            mime="application/json",
+        )
 
 
 # ---------------------------------------------------------
@@ -1008,6 +1503,19 @@ with tab_about:
 
         **attack → target → security controls → metadata → evaluator → result**
 
+        ### Benchmarking
+
+        The Benchmark tab runs the complete saved attack suite
+        against a selected target.
+
+        This provides a repeatable baseline that can be used to:
+
+        - compare vulnerable and secured targets
+        - measure PASS / FAIL / REVIEW outcomes
+        - identify which defensive layer stopped an attack
+        - record attack success rates
+        - validate fixes with regression testing
+
         ### Real target integration
 
         The Secure LangGraph Content Assistant reports:
@@ -1031,17 +1539,19 @@ with tab_about:
         - **FAIL** — the application appears to have complied
         - **REVIEW** — deterministic evidence is insufficient
 
+        The evaluator combines deterministic checks with an
+        LLM-as-a-judge fallback for ambiguous results.
+
         ### Planned improvements
 
-        - batch testing
-        - attack success-rate metrics
-        - generation of multiple variants
-        - indirect prompt injection
-        - multi-turn attacks
+        - RAG-generated benchmark suites
+        - generation of multiple attack variants
+        - attack-category metrics
+        - precheck-bypass metrics
+        - true multi-turn attacks
         - tool-call inspection
-        - LLM-as-a-judge evaluation
         - LangSmith observability
         - expanded RAG knowledge base
-        - AWS integration and deployment
+        - deployment
         """
     )

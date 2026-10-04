@@ -113,3 +113,36 @@ def run_security_test(
         )
 
     return result
+
+def run_benchmark_suite(
+    *,
+    target_name: str,
+    target_fn,
+    attacks: list[dict],
+    evaluator,
+    log_file: Path,
+) -> list[dict]:
+    """
+    Run a collection of attacks against one target and
+    return all test results.
+    """
+
+    results = []
+
+    for attack in attacks:
+        attack_for_run = {
+            **attack,
+            "source": attack.get("source", "saved"),
+        }
+
+        result = run_security_test(
+            target_name=target_name,
+            target_fn=target_fn,
+            attack=attack_for_run,
+            evaluator=evaluator,
+            log_file=log_file,
+        )
+
+        results.append(result)
+
+    return results
