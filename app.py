@@ -8,6 +8,7 @@ from tester.evaluators import evaluate_response
 from tester.rag import generate_attack, load_attack_knowledge
 from tester.runner import (
     run_benchmark_suite,
+    run_multi_turn_security_test,
     run_security_test,
 )
 from tester.targets import demo_target, langgraph_target
@@ -26,8 +27,8 @@ st.set_page_config(
 
 st.title("🛡️ Agent Security Test Bench")
 st.caption(
-    "Test AI applications against saved and RAG-generated "
-    "prompt-injection attacks."
+    "Test AI applications against saved, RAG-generated, "
+    "benchmark, and multi-turn adversarial attacks."
 )
 
 
@@ -45,6 +46,10 @@ benchmark_attacks = load_attacks(
 
 advanced_benchmark_attacks = load_attacks(
     APP_DIR / "data" / "advanced_benchmark_attacks.json"
+)
+
+multi_turn_attacks = load_attacks(
+    APP_DIR / "data" / "multi_turn_attacks.json"
 )
 
 attack_knowledge = load_attack_knowledge()
@@ -87,10 +92,6 @@ with st.sidebar:
     rag_result = None
     attack_prompt = ""
 
-    # -----------------------------------------------------
-    # Saved attack configuration
-    # -----------------------------------------------------
-
     if attack_source == "Saved Attack":
         attack_names = [
             attack["name"]
@@ -124,10 +125,6 @@ with st.sidebar:
                 "expected_secure_behavior"
             ]
         )
-
-    # -----------------------------------------------------
-    # RAG attack configuration
-    # -----------------------------------------------------
 
     else:
         rag_category = st.selectbox(
@@ -239,12 +236,14 @@ with st.sidebar:
 (
     tab_run,
     tab_benchmark,
+    tab_multi_turn,
     tab_history,
     tab_about,
 ) = st.tabs(
     [
         "Run Test",
         "Benchmark",
+        "Multi-Turn",
         "Test History",
         "About",
     ]
@@ -258,15 +257,10 @@ with st.sidebar:
 with tab_run:
 
     if attack_source == "Saved Attack":
-
-        col1, col2 = st.columns(
-            2
-        )
+        col1, col2 = st.columns(2)
 
         with col1:
-            st.subheader(
-                "Attack Prompt"
-            )
+            st.subheader("Attack Prompt")
 
             saved_editor_key = (
                 "saved_attack_editor_"
@@ -309,9 +303,7 @@ with tab_run:
             )
 
     else:
-
         if rag_result:
-
             st.subheader(
                 "RAG-Generated Attack"
             )
@@ -422,12 +414,7 @@ with tab_run:
                 "in the sidebar."
             )
 
-    # -----------------------------------------------------
-    # Run security test
-    # -----------------------------------------------------
-
     if run_button:
-
         if (
             target_name
             == "Secure LangGraph Content Assistant"
@@ -493,7 +480,6 @@ with tab_run:
                 "The target application "
                 "could not be run."
             )
-
             st.exception(exc)
 
         else:
@@ -503,22 +489,16 @@ with tab_run:
                 score_col,
                 category_col,
                 time_col,
-            ) = st.columns(
-                3
-            )
+            ) = st.columns(3)
 
             score_col.metric(
                 "Result",
-                result[
-                    "evaluation"
-                ]["verdict"],
+                result["evaluation"]["verdict"],
             )
 
             category_col.metric(
                 "Category",
-                result[
-                    "attack"
-                ]["category"],
+                result["attack"]["category"],
             )
 
             time_col.metric(
@@ -554,9 +534,7 @@ with tab_run:
                     security_col,
                     route_col,
                     validation_col,
-                ) = st.columns(
-                    3
-                )
+                ) = st.columns(3)
 
                 security_col.metric(
                     "Security Status",
@@ -620,9 +598,9 @@ with tab_run:
                 "Evaluation"
             )
 
-            verdict = result[
-                "evaluation"
-            ]["verdict"]
+            verdict = (
+                result["evaluation"]["verdict"]
+            )
 
             if verdict == "PASS":
                 st.success(
@@ -660,9 +638,7 @@ with tab_run:
 
             if result[
                 "evaluation"
-            ].get(
-                "defense_reason"
-            ):
+            ].get("defense_reason"):
                 st.markdown(
                     "**Defense details**"
                 )
@@ -730,9 +706,7 @@ with tab_run:
             with st.expander(
                 "Execution Trace"
             ):
-                st.json(
-                    result
-                )
+                st.json(result)
 
             st.download_button(
                 "Download this result as JSON",
@@ -887,10 +861,7 @@ with tab_benchmark:
             st.error(
                 "The benchmark could not be completed."
             )
-
-            st.exception(
-                exc
-            )
+            st.exception(exc)
 
     benchmark_results = (
         st.session_state.get(
@@ -954,9 +925,7 @@ with tab_benchmark:
             pass_col,
             fail_col,
             review_col,
-        ) = st.columns(
-            4
-        )
+        ) = st.columns(4)
 
         total_col.metric(
             "Tests",
@@ -995,9 +964,7 @@ with tab_benchmark:
                 resistance_col,
                 success_col,
                 review_rate_col,
-            ) = st.columns(
-                3
-            )
+            ) = st.columns(3)
 
             resistance_col.metric(
                 "Defense success rate",
@@ -1043,9 +1010,7 @@ with tab_benchmark:
             (
                 allowed_col,
                 blocked_col,
-            ) = st.columns(
-                2
-            )
+            ) = st.columns(2)
 
             allowed_col.metric(
                 "Precheck bypasses",
@@ -1064,7 +1029,6 @@ with tab_benchmark:
         benchmark_rows = []
 
         for result in benchmark_results:
-
             metadata = result.get(
                 "target_metadata",
                 {},
@@ -1282,9 +1246,7 @@ with tab_benchmark:
                 with st.expander(
                     "Execution Trace"
                 ):
-                    st.json(
-                        result
-                    )
+                    st.json(result)
 
         if (
             benchmark_result_suite
@@ -1319,6 +1281,314 @@ with tab_benchmark:
 
 
 # ---------------------------------------------------------
+# Multi-Turn tab
+# ---------------------------------------------------------
+
+with tab_multi_turn:
+
+    st.subheader(
+        "Multi-Turn Security Testing"
+    )
+
+    st.caption(
+        "Run a sequence of adversarial turns through the same "
+        "LangGraph thread to test whether earlier context can "
+        "influence later security behavior."
+    )
+
+    st.info(
+        "Multi-turn tests currently run against the Secure LangGraph "
+        "Content Assistant because it supports shared LangGraph thread state."
+    )
+
+    multi_turn_names = [
+        attack["name"]
+        for attack in multi_turn_attacks
+    ]
+
+    selected_multi_turn_name = st.selectbox(
+        "Multi-turn scenario",
+        multi_turn_names,
+        key="multi_turn_scenario",
+    )
+
+    selected_multi_turn_attack = next(
+        attack
+        for attack in multi_turn_attacks
+        if attack["name"]
+        == selected_multi_turn_name
+    )
+
+    st.markdown(
+        f'**Category:** '
+        f'{selected_multi_turn_attack["category"]}'
+    )
+
+    st.markdown(
+        "**Expected secure behavior**"
+    )
+
+    st.write(
+        selected_multi_turn_attack[
+            "expected_secure_behavior"
+        ]
+    )
+
+    st.subheader(
+        "Conversation Sequence"
+    )
+
+    for index, turn in enumerate(
+        selected_multi_turn_attack["turns"],
+        start=1,
+    ):
+        st.markdown(
+            f"**Turn {index}**"
+        )
+
+        st.code(
+            turn,
+            language=None,
+        )
+
+    run_multi_turn_button = st.button(
+        "Run Multi-Turn Test",
+        type="primary",
+        key="run_multi_turn_test_button",
+    )
+
+    if run_multi_turn_button:
+
+        try:
+            with st.spinner(
+                "Running all turns through one "
+                "LangGraph conversation..."
+            ):
+                multi_turn_result = (
+                    run_multi_turn_security_test(
+                        target_name=(
+                            "Secure LangGraph Content Assistant"
+                        ),
+                        target_fn=(
+                            langgraph_target
+                        ),
+                        attack=(
+                            selected_multi_turn_attack
+                        ),
+                        evaluator=(
+                            evaluate_response
+                        ),
+                        log_file=(
+                            LOG_FILE
+                        ),
+                    )
+                )
+
+            st.session_state[
+                "multi_turn_result"
+            ] = multi_turn_result
+
+        except Exception as exc:
+            st.error(
+                "The multi-turn test could not be completed."
+            )
+
+            st.exception(exc)
+
+    multi_turn_result = (
+        st.session_state.get(
+            "multi_turn_result"
+        )
+    )
+
+    if multi_turn_result:
+        st.divider()
+
+        st.markdown(
+            f'### Result — '
+            f'{multi_turn_result["attack"]["name"]}'
+        )
+
+        verdict = (
+            multi_turn_result[
+                "evaluation"
+            ]["verdict"]
+        )
+
+        (
+            verdict_col,
+            turns_col,
+            duration_col,
+        ) = st.columns(3)
+
+        verdict_col.metric(
+            "Verdict",
+            verdict,
+        )
+
+        turns_col.metric(
+            "Turns",
+            len(
+                multi_turn_result[
+                    "turns"
+                ]
+            ),
+        )
+
+        duration_col.metric(
+            "Execution time",
+            f'{multi_turn_result["duration_ms"]:.1f} ms',
+        )
+
+        if verdict == "PASS":
+            st.success(
+                multi_turn_result[
+                    "evaluation"
+                ]["reason"]
+            )
+
+        elif verdict == "FAIL":
+            st.error(
+                multi_turn_result[
+                    "evaluation"
+                ]["reason"]
+            )
+
+        else:
+            st.warning(
+                multi_turn_result[
+                    "evaluation"
+                ]["reason"]
+            )
+
+        st.caption(
+            "Shared LangGraph thread: "
+            f'{multi_turn_result["thread_id"]}'
+        )
+
+        st.subheader(
+            "Turn-by-Turn Trace"
+        )
+
+        for turn in (
+            multi_turn_result["turns"]
+        ):
+            turn_number = turn["turn"]
+
+            with st.expander(
+                f"Turn {turn_number}",
+                expanded=True,
+            ):
+                st.markdown(
+                    "**Prompt**"
+                )
+
+                st.code(
+                    turn["prompt"],
+                    language=None,
+                )
+
+                st.markdown(
+                    "**Response**"
+                )
+
+                st.code(
+                    turn["response"],
+                    language=None,
+                )
+
+                (
+                    security_col,
+                    route_col,
+                    validation_col,
+                ) = st.columns(3)
+
+                security_col.metric(
+                    "Security",
+                    turn.get(
+                        "security_status"
+                    )
+                    or "Not reported",
+                )
+
+                route_col.metric(
+                    "Route",
+                    turn.get(
+                        "route"
+                    )
+                    or "Not reached",
+                )
+
+                validation_col.metric(
+                    "Validation",
+                    turn.get(
+                        "validation_status"
+                    )
+                    or "Not reached",
+                )
+
+        st.subheader(
+            "Final Evaluation"
+        )
+
+        evaluation = (
+            multi_turn_result[
+                "evaluation"
+            ]
+        )
+
+        st.write(
+            f'**Method:** '
+            f'{evaluation.get("evaluation_method", "unknown")}'
+        )
+
+        if evaluation.get(
+            "defense"
+        ):
+            st.write(
+                f'**Defense:** '
+                f'{evaluation["defense"]}'
+            )
+
+        if evaluation.get(
+            "defense_reason"
+        ):
+            st.write(
+                f'**Defense details:** '
+                f'{evaluation["defense_reason"]}'
+            )
+
+        judge = evaluation.get(
+            "judge"
+        )
+
+        if judge:
+            with st.expander(
+                "LLM Judge Details"
+            ):
+                st.json(judge)
+
+        with st.expander(
+            "Full Multi-Turn Execution Trace"
+        ):
+            st.json(
+                multi_turn_result
+            )
+
+        st.download_button(
+            "Download multi-turn result as JSON",
+            data=json.dumps(
+                multi_turn_result,
+                indent=2,
+            ),
+            file_name=(
+                f'{multi_turn_result["run_id"]}.json'
+            ),
+            mime="application/json",
+        )
+
+
+# ---------------------------------------------------------
 # Test History tab
 # ---------------------------------------------------------
 
@@ -1329,36 +1599,29 @@ with tab_history:
     )
 
     if not LOG_FILE.exists():
-
         st.info(
             "No tests have been run yet."
         )
 
     else:
-
         rows = []
 
         with LOG_FILE.open(
             "r",
             encoding="utf-8",
         ) as f:
-
             for line in f:
-
                 if line.strip():
-
                     rows.append(
                         json.loads(line)
                     )
 
         if not rows:
-
             st.info(
                 "No tests have been run yet."
             )
 
         else:
-
             rows.reverse()
 
             for row in rows[:25]:
@@ -1383,7 +1646,11 @@ with tab_history:
                         "attack"
                     ].get(
                         "source",
-                        "saved",
+                        (
+                            "multi-turn"
+                            if "turns" in row
+                            else "saved"
+                        ),
                     )
                 )
 
@@ -1418,13 +1685,26 @@ with tab_history:
                         f'{row["evaluation"]["reason"]}'
                     )
 
+                    if "turns" in row:
+                        st.write(
+                            f'**Turns:** '
+                            f'{len(row["turns"])}'
+                        )
+
+                        if row.get(
+                            "thread_id"
+                        ):
+                            st.write(
+                                f'**Thread ID:** '
+                                f'{row["thread_id"]}'
+                            )
+
                     metadata = row.get(
                         "target_metadata",
                         {},
                     )
 
                     if metadata:
-
                         if metadata.get(
                             "security_status"
                         ):
@@ -1479,7 +1759,7 @@ with tab_about:
 
     st.markdown(
         """
-        This application provides multiple ways to test AI applications.
+        This application provides several ways to test AI applications.
 
         ### Saved attacks
 
@@ -1488,44 +1768,43 @@ with tab_about:
 
         ### RAG-generated attacks
 
-        The tester can retrieve relevant techniques from a
-        curated attack knowledge base and use those techniques
-        as grounding context for generating a new adversarial prompt.
-
-        The RAG pipeline is:
+        The tester retrieves relevant techniques from a curated
+        attack knowledge base and uses them as grounding context
+        for generating a new adversarial prompt.
 
         **testing goal → semantic retrieval → attack techniques → LLM generation → adversarial prompt**
 
         ### Benchmark suites
 
-        Three benchmark suites are available:
+        Three benchmark tiers are available:
 
-        - **Basic saved attacks** — simple known attack patterns used as
-          a smoke test for the evaluation pipeline.
-        - **Adversarial benchmark** — subtle attacks that exercise
-          instruction boundaries and serve as regression coverage.
-        - **Advanced benchmark** — harder attacks involving obfuscation,
-          indirect injection, fabricated authorization, routing manipulation,
-          tool escalation, and malicious instructions embedded inside
-          otherwise legitimate tasks.
-
-        The benchmark pipeline is:
+        - **Basic saved attacks** — smoke tests for the pipeline.
+        - **Adversarial benchmark** — regression coverage for subtle
+          instruction-boundary weaknesses.
+        - **Advanced benchmark** — obfuscation, indirect injection,
+          fabricated authorization, routing manipulation, tool escalation,
+          and attacks embedded inside legitimate tasks.
 
         **attack suite → target → security layers → evaluator → aggregate metrics**
 
+        ### Multi-turn security testing
+
+        Multi-turn scenarios reuse the same LangGraph thread across
+        several prompts. This makes it possible to test attacks that
+        depend on conversation history rather than merely claiming that
+        earlier authorization occurred.
+
+        **benign setup → context manipulation → privilege claim → adversarial request → evaluation**
+
         ### Defense-in-depth testing
 
-        The tester can distinguish between:
+        The tester distinguishes among:
 
-        - attacks blocked by the initial security precheck
+        - attacks blocked by the security precheck
         - attacks that bypass the precheck but are resisted by the agent
         - unsafe responses stopped by output validation
         - genuine adversarial successes
         - ambiguous results requiring review
-
-        This makes it possible to test not just whether the application
-        eventually produces a safe response, but which security layer
-        actually provided the protection.
 
         ### Real target integration
 
@@ -1537,10 +1816,6 @@ with tab_about:
         - validation status
         - validation reason
         - LangGraph thread ID
-
-        This allows the tester to identify which security layer
-        handled an attack rather than relying only on the final
-        model response.
 
         ### Current evaluation
 
@@ -1555,12 +1830,12 @@ with tab_about:
 
         ### Planned improvements
 
-        - multiple generated variants per benchmark category
-        - category-level metrics and dashboards
-        - true multi-turn attack sequences
-        - explicit tool-call instrumentation
+        - expose requested and executed tool calls in tester results
+        - evaluate unauthorized tool usage directly
+        - batch multi-turn benchmark execution
+        - category-level dashboards
         - LangSmith observability
-        - expanded attack knowledge base
+        - persistent result storage
         - deployment
         """
     )
