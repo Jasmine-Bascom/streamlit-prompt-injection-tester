@@ -70,3 +70,27 @@
 {"timestamp": "2026-10-04T17:30:33.608942+00:00", "event_type": "output_validation_passed", "route": "general"}
 {"timestamp": "2026-10-04T17:30:34.987074+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
 {"timestamp": "2026-10-04T17:30:36.899169+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:36:03.657986+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:36:05.491833+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:36:05.713403+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:36:08.346974+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:36:08.870613+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:36:10.809355+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:36:11.121896+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:36:12.585556+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:36:12.952791+00:00", "event_type": "pii_redacted_input", "entity_types": ["DATE_TIME"], "entity_count": 1}
+{"timestamp": "2026-10-04T17:36:14.397566+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:36:15.927750+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:36:23.456042+00:00", "event_type": "output_validation_passed", "route": "seo_blog_writer"}
+{"timestamp": "2026-10-04T17:36:24.853730+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:36:28.557692+00:00", "event_type": "pii_redacted_output", "route": "x_blog_writer", "entity_types": ["DATE_TIME"], "entity_count": 1}
+{"timestamp": "2026-10-04T17:36:30.354832+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:36:32.674869+00:00", "event_type": "output_validation_passed", "route": "seo_blog_writer"}
+{"timestamp": "2026-10-04T17:36:32.865352+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:36:34.097108+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:36:34.557971+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:36:35.783712+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:36:36.097213+00:00", "event_type": "security_precheck_allowed", "reason": "no_prompt_injection_no_moderation_flag_no_pii"}
+{"timestamp": "2026-10-04T17:36:37.585871+00:00", "event_type": "output_validation_passed", "route": "general"}
+{"timestamp": "2026-10-04T17:36:37.984146+00:00", "event_type": "pii_redacted_input", "entity_types": ["EMAIL_ADDRESS", "EMAIL_ADDRESS", "URL", "URL"], "entity_count": 4}
+{"timestamp": "2026-10-04T17:36:39.530206+00:00", "event_type": "output_validation_passed", "route": "x_blog_writer"}
