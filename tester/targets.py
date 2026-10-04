@@ -1,48 +1,21 @@
-import sys
 import uuid
-from functools import lru_cache
-from pathlib import Path
 
-from dotenv import load_dotenv
+from src.graph import build_graph
 
 
-TARGET_PROJECT = (
-    Path(__file__).resolve().parents[2]
-    / "secure-langgraph-content-assistant"
-)
+_graph = None
 
 
-@lru_cache(maxsize=1)
 def get_langgraph_target():
     """
-    Load and build the existing Secure LangGraph
-    Content Assistant.
+    Lazily build and cache the installed LangGraph target.
     """
+    global _graph
 
-    if not TARGET_PROJECT.exists():
-        raise FileNotFoundError(
-            "Target project not found at: "
-            f"{TARGET_PROJECT}"
-        )
+    if _graph is None:
+        _graph = build_graph()
 
-    if (
-        str(TARGET_PROJECT)
-        not in sys.path
-    ):
-        sys.path.insert(
-            0,
-            str(TARGET_PROJECT),
-        )
-
-    load_dotenv(
-        TARGET_PROJECT / ".env"
-    )
-
-    from src.graph import (
-        build_graph,
-    )
-
-    return build_graph()
+    return _graph
 
 
 def langgraph_target(
@@ -50,19 +23,14 @@ def langgraph_target(
     thread_id: str | None = None,
 ) -> dict:
     """
-    Run a prompt against the real LangGraph application.
+    Run a prompt against the installed Secure LangGraph
+    Content Assistant.
 
     If thread_id is supplied, reuse the same conversation
     so multi-turn security tests preserve state.
-
-    Tool metadata is reset at the beginning of every tester
-    invocation so each returned result represents tool activity
-    from the current turn rather than previous turns.
     """
 
-    graph = (
-        get_langgraph_target()
-    )
+    graph = get_langgraph_target()
 
     if thread_id is None:
         thread_id = (
@@ -72,7 +40,7 @@ def langgraph_target(
 
     config = {
         "configurable": {
-            "thread_id": thread_id
+            "thread_id": thread_id,
         }
     }
 

@@ -5,3 +5,4 @@ langchain-openai
 langchain-chroma
 chromadb
 pydantic>=2,<3
+git+https://github.com/Jasmine-Bascom/secure-langgraph-content-assistant.git
