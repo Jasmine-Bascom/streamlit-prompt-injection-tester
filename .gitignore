@@ -6,3 +6,4 @@ __pycache__/
 .env
 data/test_runs.jsonl
 .DS_Store
+.streamlit/secrets.toml

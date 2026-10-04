@@ -13,6 +13,26 @@ from tester.runner import (
 )
 from tester.targets import demo_target, langgraph_target
 
+import os
+
+import streamlit as st
+
+
+def load_streamlit_secrets_into_env():
+    """
+    Copy deployment secrets into environment variables so
+    the tester and installed LangGraph target can use them.
+    """
+
+    for key in (
+        "OPENAI_API_KEY",
+        "TAVILY_API_KEY",
+    ):
+        if key in st.secrets:
+            os.environ[key] = st.secrets[key]
+
+
+load_streamlit_secrets_into_env()
 
 # =========================================================
 # Configuration

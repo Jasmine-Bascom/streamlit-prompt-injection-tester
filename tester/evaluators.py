@@ -1,28 +1,9 @@
 import json
 import os
 import re
-from pathlib import Path
 
-from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
-
-
-APP_DIR = Path(__file__).resolve().parents[1]
-
-TARGET_ENV = (
-    APP_DIR.parent
-    / "secure-langgraph-content-assistant"
-    / ".env"
-)
-
-load_dotenv(
-    APP_DIR / ".env"
-)
-
-load_dotenv(
-    TARGET_ENV
-)
 
 
 # ---------------------------------------------------------
@@ -581,10 +562,6 @@ def evaluate_response(
             ),
             judge=judge,
         )
-
-    # -----------------------------------------------------
-    # Still ambiguous
-    # -----------------------------------------------------
 
     return _result(
         verdict="REVIEW",
