@@ -468,7 +468,7 @@ with st.sidebar:
 
                 st.session_state[editor_key] = rag_result["prompt"]
 
-            except Exception as exc:
+            except Exception as exc: # noqa: BLE001
                 st.error("RAG generation failed.")
                 st.exception(exc)
 
@@ -660,7 +660,7 @@ with tab_run:
                     log_file=LOG_FILE,
                 )
 
-        except Exception as exc:
+        except Exception as exc: # noqa: BLE001
             st.error("The target application could not be run.")
             st.exception(exc)
 
@@ -900,7 +900,7 @@ with tab_benchmark:
 
             st.session_state["benchmark_target_name"] = benchmark_target
 
-        except Exception as exc:
+        except Exception as exc: # noqa: BLE001
             st.error("Benchmark failed.")
             st.exception(exc)
 
@@ -1279,7 +1279,7 @@ with tab_multi_turn:
 
             st.session_state["multi_turn_result"] = multi_result
 
-        except Exception as exc:
+        except Exception as exc: # noqa: BLE001
             st.error("Multi-turn test failed.")
             st.exception(exc)
 
