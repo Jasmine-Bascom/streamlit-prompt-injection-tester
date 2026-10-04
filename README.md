@@ -642,9 +642,7 @@ Example:
 ```python
 from src.pii import redact_pii
 
-result = redact_pii(
-    "Contact Jane at jane@example.com"
-)
+result = redact_pii("Contact Jane at jane@example.com")
 
 print(result.redacted_text)
 ```
@@ -891,7 +889,7 @@ Structured output includes:
     "sensitive_information_exposed": False,
     "unsafe_tool_behavior": False,
     "confidence": 0.90,
-    "reason": "..."
+    "reason": "...",
 }
 ```
 

@@ -1,14 +1,16 @@
+import json
+import time
+import uuid
 from datetime import (
     datetime,
     timezone,
 )
-import json
 from pathlib import Path
-import time
-import uuid
+
 from tester.tool_policy import (
     evaluate_tool_policy,
 )
+
 
 def _normalize_target_result(
     raw_target_result,
@@ -25,9 +27,7 @@ def _normalize_target_result(
         str,
     ):
         return {
-            "output": (
-                raw_target_result
-            ),
+            "output": (raw_target_result),
             "security_status": None,
             "security_reason": None,
             "route": None,
@@ -49,31 +49,11 @@ def _normalize_target_result(
                     "",
                 )
             ),
-            "security_status": (
-                raw_target_result.get(
-                    "security_status"
-                )
-            ),
-            "security_reason": (
-                raw_target_result.get(
-                    "security_reason"
-                )
-            ),
-            "route": (
-                raw_target_result.get(
-                    "route"
-                )
-            ),
-            "validation_status": (
-                raw_target_result.get(
-                    "validation_status"
-                )
-            ),
-            "validation_reason": (
-                raw_target_result.get(
-                    "validation_reason"
-                )
-            ),
+            "security_status": (raw_target_result.get("security_status")),
+            "security_reason": (raw_target_result.get("security_reason")),
+            "route": (raw_target_result.get("route")),
+            "validation_status": (raw_target_result.get("validation_status")),
+            "validation_reason": (raw_target_result.get("validation_reason")),
             "tool_calls": (
                 raw_target_result.get(
                     "tool_calls",
@@ -88,18 +68,11 @@ def _normalize_target_result(
                 )
                 or []
             ),
-            "thread_id": (
-                raw_target_result.get(
-                    "thread_id"
-                )
-                or thread_id
-            ),
+            "thread_id": (raw_target_result.get("thread_id") or thread_id),
         }
 
     return {
-        "output": str(
-            raw_target_result
-        ),
+        "output": str(raw_target_result),
         "security_status": None,
         "security_reason": None,
         "route": None,
@@ -119,11 +92,7 @@ def _target_metadata(
     and evaluate route-specific tool policy.
     """
 
-    route = (
-        target_result.get(
-            "route"
-        )
-    )
+    route = target_result.get("route")
 
     tool_calls = (
         target_result.get(
@@ -141,55 +110,24 @@ def _target_metadata(
         or []
     )
 
-    tool_policy = (
-        evaluate_tool_policy(
-            route=route,
-            requested_tool_calls=(
-                tool_calls
-            ),
-            executed_tool_calls=(
-                executed_tool_calls
-            ),
-        )
+    tool_policy = evaluate_tool_policy(
+        route=route,
+        requested_tool_calls=(tool_calls),
+        executed_tool_calls=(executed_tool_calls),
     )
 
     return {
-        "security_status": (
-            target_result.get(
-                "security_status"
-            )
-        ),
-        "security_reason": (
-            target_result.get(
-                "security_reason"
-            )
-        ),
+        "security_status": (target_result.get("security_status")),
+        "security_reason": (target_result.get("security_reason")),
         "route": route,
-        "validation_status": (
-            target_result.get(
-                "validation_status"
-            )
-        ),
-        "validation_reason": (
-            target_result.get(
-                "validation_reason"
-            )
-        ),
-        "tool_calls": (
-            tool_calls
-        ),
-        "executed_tool_calls": (
-            executed_tool_calls
-        ),
-        "tool_policy": (
-            tool_policy
-        ),
-        "thread_id": (
-            target_result.get(
-                "thread_id"
-            )
-        ),
+        "validation_status": (target_result.get("validation_status")),
+        "validation_reason": (target_result.get("validation_reason")),
+        "tool_calls": (tool_calls),
+        "executed_tool_calls": (executed_tool_calls),
+        "tool_policy": (tool_policy),
+        "thread_id": (target_result.get("thread_id")),
     }
+
 
 def _write_log(
     *,
@@ -209,12 +147,7 @@ def _write_log(
         "a",
         encoding="utf-8",
     ) as f:
-        f.write(
-            json.dumps(
-                result
-            )
-            + "\n"
-        )
+        f.write(json.dumps(result) + "\n")
 
 
 def run_security_test(
@@ -229,31 +162,15 @@ def run_security_test(
     Run one security test against one target.
     """
 
-    run_id = (
-        "run-"
-        f"{uuid.uuid4().hex[:10]}"
-    )
+    run_id = f"run-{uuid.uuid4().hex[:10]}"
 
-    started = (
-        time.perf_counter()
-    )
+    started = time.perf_counter()
 
-    raw_target_result = (
-        target_fn(
-            attack["prompt"]
-        )
-    )
+    raw_target_result = target_fn(attack["prompt"])
 
-    duration_ms = (
-        time.perf_counter()
-        - started
-    ) * 1000
+    duration_ms = (time.perf_counter() - started) * 1000
 
-    target_result = (
-        _normalize_target_result(
-            raw_target_result
-        )
-    )
+    target_result = _normalize_target_result(raw_target_result)
 
     evaluation = evaluator(
         attack,
@@ -262,14 +179,8 @@ def run_security_test(
 
     result = {
         "run_id": run_id,
-        "timestamp": (
-            datetime.now(
-                timezone.utc
-            ).isoformat()
-        ),
-        "target_name": (
-            target_name
-        ),
+        "timestamp": (datetime.now(timezone.utc).isoformat()),
+        "target_name": (target_name),
         "attack": attack,
         "target_response": (
             target_result.get(
@@ -277,15 +188,9 @@ def run_security_test(
                 "",
             )
         ),
-        "target_metadata": (
-            _target_metadata(
-                target_result
-            )
-        ),
+        "target_metadata": (_target_metadata(target_result)),
         "evaluation": evaluation,
-        "duration_ms": (
-            duration_ms
-        ),
+        "duration_ms": (duration_ms),
     }
 
     _write_log(
@@ -321,29 +226,15 @@ def run_benchmark_suite(
             ),
         }
 
-        result = (
-            run_security_test(
-                target_name=(
-                    target_name
-                ),
-                target_fn=(
-                    target_fn
-                ),
-                attack=(
-                    attack_for_run
-                ),
-                evaluator=(
-                    evaluator
-                ),
-                log_file=(
-                    log_file
-                ),
-            )
+        result = run_security_test(
+            target_name=(target_name),
+            target_fn=(target_fn),
+            attack=(attack_for_run),
+            evaluator=(evaluator),
+            log_file=(log_file),
         )
 
-        results.append(
-            result
-        )
+        results.append(result)
 
     return results
 
@@ -364,25 +255,15 @@ def run_multi_turn_security_test(
     executions are recorded separately for every turn.
     """
 
-    run_id = (
-        "multi-"
-        f"{uuid.uuid4().hex[:10]}"
-    )
+    run_id = f"multi-{uuid.uuid4().hex[:10]}"
 
-    thread_id = (
-        "security-test-"
-        f"{uuid.uuid4().hex[:8]}"
-    )
+    thread_id = f"security-test-{uuid.uuid4().hex[:8]}"
 
-    turns = attack[
-        "turns"
-    ]
+    turns = attack["turns"]
 
     turn_results = []
 
-    started = (
-        time.perf_counter()
-    )
+    started = time.perf_counter()
 
     final_target_result = None
 
@@ -390,20 +271,14 @@ def run_multi_turn_security_test(
         turns,
         start=1,
     ):
-        raw_result = (
-            target_fn(
-                prompt,
-                thread_id=thread_id,
-            )
+        raw_result = target_fn(
+            prompt,
+            thread_id=thread_id,
         )
 
-        target_result = (
-            _normalize_target_result(
-                raw_result,
-                thread_id=(
-                    thread_id
-                ),
-            )
+        target_result = _normalize_target_result(
+            raw_result,
+            thread_id=(thread_id),
         )
 
         turn_results.append(
@@ -416,31 +291,11 @@ def run_multi_turn_security_test(
                         "",
                     )
                 ),
-                "security_status": (
-                    target_result.get(
-                        "security_status"
-                    )
-                ),
-                "security_reason": (
-                    target_result.get(
-                        "security_reason"
-                    )
-                ),
-                "route": (
-                    target_result.get(
-                        "route"
-                    )
-                ),
-                "validation_status": (
-                    target_result.get(
-                        "validation_status"
-                    )
-                ),
-                "validation_reason": (
-                    target_result.get(
-                        "validation_reason"
-                    )
-                ),
+                "security_status": (target_result.get("security_status")),
+                "security_reason": (target_result.get("security_reason")),
+                "route": (target_result.get("route")),
+                "validation_status": (target_result.get("validation_status")),
+                "validation_reason": (target_result.get("validation_reason")),
                 "tool_calls": (
                     target_result.get(
                         "tool_calls",
@@ -458,25 +313,16 @@ def run_multi_turn_security_test(
             }
         )
 
-        final_target_result = (
-            target_result
-        )
+        final_target_result = target_result
 
-    duration_ms = (
-        time.perf_counter()
-        - started
-    ) * 1000
+    duration_ms = (time.perf_counter() - started) * 1000
 
     evaluation_attack = {
         **attack,
         "prompt": (
             "\n\n".join(
-                (
-                    f"Turn {index}: "
-                    f"{prompt}"
-                )
-                for index, prompt
-                in enumerate(
+                (f"Turn {index}: {prompt}")
+                for index, prompt in enumerate(
                     turns,
                     start=1,
                 )
@@ -491,38 +337,20 @@ def run_multi_turn_security_test(
 
     result = {
         "run_id": run_id,
-        "timestamp": (
-            datetime.now(
-                timezone.utc
-            ).isoformat()
-        ),
-        "target_name": (
-            target_name
-        ),
+        "timestamp": (datetime.now(timezone.utc).isoformat()),
+        "target_name": (target_name),
         "attack": attack,
-        "thread_id": (
-            thread_id
-        ),
-        "turns": (
-            turn_results
-        ),
+        "thread_id": (thread_id),
+        "turns": (turn_results),
         "target_response": (
             final_target_result.get(
                 "output",
                 "",
             )
         ),
-        "target_metadata": (
-            _target_metadata(
-                final_target_result
-            )
-        ),
-        "evaluation": (
-            evaluation
-        ),
-        "duration_ms": (
-            duration_ms
-        ),
+        "target_metadata": (_target_metadata(final_target_result)),
+        "evaluation": (evaluation),
+        "duration_ms": (duration_ms),
     }
 
     _write_log(
