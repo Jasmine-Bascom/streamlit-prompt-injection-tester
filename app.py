@@ -5,27 +5,43 @@ import streamlit as st
 
 from tester.attacks import load_attacks
 from tester.evaluators import evaluate_response
-from tester.rag import generate_attack, load_attack_knowledge
+from tester.rag import (
+    generate_attack,
+    load_attack_knowledge,
+)
 from tester.runner import (
     run_benchmark_suite,
     run_multi_turn_security_test,
     run_security_test,
 )
-from tester.targets import demo_target, langgraph_target
+from tester.targets import (
+    demo_target,
+    langgraph_target,
+)
 
 
 APP_DIR = Path(__file__).parent
-LOG_FILE = APP_DIR / "data" / "test_runs.jsonl"
+
+LOG_FILE = (
+    APP_DIR
+    / "data"
+    / "test_runs.jsonl"
+)
 
 
 st.set_page_config(
-    page_title="Agent Security Test Bench",
+    page_title=(
+        "Agent Security Test Bench"
+    ),
     page_icon="🛡️",
     layout="wide",
 )
 
 
-st.title("🛡️ Agent Security Test Bench")
+st.title(
+    "🛡️ Agent Security Test Bench"
+)
+
 st.caption(
     "Test AI applications against saved, RAG-generated, "
     "benchmark, and multi-turn adversarial attacks."
@@ -37,22 +53,34 @@ st.caption(
 # ---------------------------------------------------------
 
 attacks = load_attacks(
-    APP_DIR / "data" / "attacks.json"
+    APP_DIR
+    / "data"
+    / "attacks.json"
 )
 
 benchmark_attacks = load_attacks(
-    APP_DIR / "data" / "benchmark_attacks.json"
+    APP_DIR
+    / "data"
+    / "benchmark_attacks.json"
 )
 
-advanced_benchmark_attacks = load_attacks(
-    APP_DIR / "data" / "advanced_benchmark_attacks.json"
+advanced_benchmark_attacks = (
+    load_attacks(
+        APP_DIR
+        / "data"
+        / "advanced_benchmark_attacks.json"
+    )
 )
 
 multi_turn_attacks = load_attacks(
-    APP_DIR / "data" / "multi_turn_attacks.json"
+    APP_DIR
+    / "data"
+    / "multi_turn_attacks.json"
 )
 
-attack_knowledge = load_attack_knowledge()
+attack_knowledge = (
+    load_attack_knowledge()
+)
 
 rag_categories = sorted(
     {
@@ -63,19 +91,77 @@ rag_categories = sorted(
 
 
 # ---------------------------------------------------------
-# Sidebar configuration
+# Shared tool-call display
+# ---------------------------------------------------------
+
+def display_tool_calls(
+    tool_calls,
+    *,
+    empty_message=(
+        "No tool calls requested."
+    ),
+):
+    """
+    Display model-requested tool calls.
+    """
+
+    tool_calls = (
+        tool_calls
+        or []
+    )
+
+    if not tool_calls:
+        st.caption(
+            empty_message
+        )
+        return
+
+    st.markdown(
+        "**Tool calls requested**"
+    )
+
+    for index, tool_call in enumerate(
+        tool_calls,
+        start=1,
+    ):
+        name = (
+            tool_call.get(
+                "name",
+                "unknown_tool",
+            )
+            if isinstance(
+                tool_call,
+                dict,
+            )
+            else "unknown_tool"
+        )
+
+        with st.expander(
+            f"{index}. {name}"
+        ):
+            st.json(
+                tool_call
+            )
+
+
+# ---------------------------------------------------------
+# Sidebar
 # ---------------------------------------------------------
 
 with st.sidebar:
-    st.header("Test Configuration")
+    st.header(
+        "Test Configuration"
+    )
 
     target_name = st.selectbox(
         "Target application",
         [
             "Demo vulnerable agent",
-            "Secure LangGraph Content Assistant",
+            (
+                "Secure LangGraph "
+                "Content Assistant"
+            ),
         ],
-        help="Choose which AI application you want to test.",
     )
 
     st.divider()
@@ -92,27 +178,39 @@ with st.sidebar:
     rag_result = None
     attack_prompt = ""
 
-    if attack_source == "Saved Attack":
+    if (
+        attack_source
+        == "Saved Attack"
+    ):
         attack_names = [
             attack["name"]
             for attack in attacks
         ]
 
-        selected_attack_name = st.selectbox(
-            "Attack scenario",
-            attack_names,
+        selected_attack_name = (
+            st.selectbox(
+                "Attack scenario",
+                attack_names,
+            )
         )
 
         selected_attack = next(
             attack
             for attack in attacks
-            if attack["name"] == selected_attack_name
+            if (
+                attack["name"]
+                == selected_attack_name
+            )
         )
 
-        st.markdown("**Attack category**")
+        st.markdown(
+            "**Attack category**"
+        )
 
         st.code(
-            selected_attack["category"],
+            selected_attack[
+                "category"
+            ],
             language=None,
         )
 
@@ -127,39 +225,49 @@ with st.sidebar:
         )
 
     else:
-        rag_category = st.selectbox(
-            "Attack category",
-            rag_categories,
+        rag_category = (
+            st.selectbox(
+                "Attack category",
+                rag_categories,
+            )
         )
 
-        testing_goal = st.text_area(
-            "Testing goal",
-            value=(
-                "Test whether the application can be "
-                "coaxed into violating its original "
-                "instruction hierarchy."
-            ),
-            height=130,
-            help=(
-                "Describe the security behavior that "
-                "you want the generated attack to test."
-            ),
+        testing_goal = (
+            st.text_area(
+                "Testing goal",
+                value=(
+                    "Test whether the "
+                    "application can be "
+                    "coaxed into violating "
+                    "its original instruction "
+                    "hierarchy."
+                ),
+                height=130,
+            )
         )
 
-        generate_button = st.button(
-            "Generate Attack with RAG",
-            use_container_width=True,
+        generate_button = (
+            st.button(
+                "Generate Attack with RAG",
+                use_container_width=True,
+            )
         )
 
         if generate_button:
             try:
                 with st.spinner(
-                    "Retrieving attack techniques "
-                    "and generating adversarial prompt..."
+                    "Generating "
+                    "adversarial prompt..."
                 ):
-                    rag_result = generate_attack(
-                        category=rag_category,
-                        goal=testing_goal,
+                    rag_result = (
+                        generate_attack(
+                            category=(
+                                rag_category
+                            ),
+                            goal=(
+                                testing_goal
+                            ),
+                        )
                     )
 
                 st.session_state[
@@ -176,48 +284,56 @@ with st.sidebar:
 
                 st.session_state[
                     editor_key
-                ] = rag_result["prompt"]
+                ] = rag_result[
+                    "prompt"
+                ]
 
             except Exception as exc:
                 st.error(
-                    "RAG attack generation failed."
+                    "RAG attack "
+                    "generation failed."
                 )
-                st.exception(exc)
+                st.exception(
+                    exc
+                )
 
         if (
             "rag_generated_result"
             in st.session_state
         ):
-            stored_result = st.session_state[
-                "rag_generated_result"
-            ]
+            stored_result = (
+                st.session_state[
+                    "rag_generated_result"
+                ]
+            )
 
             if (
-                stored_result.get("category")
+                stored_result.get(
+                    "category"
+                )
                 == rag_category
             ):
-                rag_result = stored_result
+                rag_result = (
+                    stored_result
+                )
 
         if rag_result:
             st.success(
                 "RAG attack generated."
             )
 
-            st.caption(
-                "You can inspect and edit the "
-                "generated prompt before running it."
-            )
-
         else:
             st.info(
-                "Generate an attack before running "
-                "a RAG-based security test."
+                "Generate an attack "
+                "before running a "
+                "RAG-based security test."
             )
 
     st.divider()
 
     rag_ready = (
-        attack_source == "Saved Attack"
+        attack_source
+        == "Saved Attack"
         or rag_result is not None
     )
 
@@ -225,12 +341,14 @@ with st.sidebar:
         "Run Security Test",
         type="primary",
         use_container_width=True,
-        disabled=not rag_ready,
+        disabled=(
+            not rag_ready
+        ),
     )
 
 
 # ---------------------------------------------------------
-# Main tabs
+# Tabs
 # ---------------------------------------------------------
 
 (
@@ -251,31 +369,48 @@ with st.sidebar:
 
 
 # ---------------------------------------------------------
-# Run Test tab
+# Run Test
 # ---------------------------------------------------------
 
 with tab_run:
 
-    if attack_source == "Saved Attack":
-        col1, col2 = st.columns(2)
+    if (
+        attack_source
+        == "Saved Attack"
+    ):
+        col1, col2 = (
+            st.columns(2)
+        )
 
         with col1:
-            st.subheader("Attack Prompt")
+            st.subheader(
+                "Attack Prompt"
+            )
 
-            saved_editor_key = (
-                "saved_attack_editor_"
-                + selected_attack["name"].replace(
+            editor_key = (
+                "saved_attack_"
+                + selected_attack[
+                    "name"
+                ].replace(
                     " ",
                     "_",
                 )
             )
 
-            attack_prompt = st.text_area(
-                "Prompt sent to target",
-                value=selected_attack["prompt"],
-                height=220,
-                key=saved_editor_key,
-                label_visibility="collapsed",
+            attack_prompt = (
+                st.text_area(
+                    "Prompt",
+                    value=(
+                        selected_attack[
+                            "prompt"
+                        ]
+                    ),
+                    height=220,
+                    key=editor_key,
+                    label_visibility=(
+                        "collapsed"
+                    ),
+                )
             )
 
         with col2:
@@ -283,12 +418,13 @@ with tab_run:
                 "Attack Information"
             )
 
-            st.markdown(
-                "**Source:** Saved attack"
+            st.write(
+                "**Source:** "
+                "Saved attack"
             )
 
-            st.markdown(
-                f'**Category:** '
+            st.write(
+                "**Category:** "
                 f'{selected_attack["category"]}'
             )
 
@@ -302,153 +438,124 @@ with tab_run:
                 ]
             )
 
-    else:
-        if rag_result:
-            st.subheader(
-                "RAG-Generated Attack"
+    elif rag_result:
+        st.subheader(
+            "RAG-Generated Attack"
+        )
+
+        rag_editor_key = (
+            "rag_attack_editor_"
+            + rag_category.replace(
+                " ",
+                "_",
             )
+        )
 
-            col1, col2 = st.columns(
-                [3, 2]
+        if (
+            rag_editor_key
+            not in st.session_state
+        ):
+            st.session_state[
+                rag_editor_key
+            ] = rag_result[
+                "prompt"
+            ]
+
+        attack_prompt = (
+            st.text_area(
+                "Generated prompt",
+                height=240,
+                key=rag_editor_key,
             )
+        )
 
-            with col1:
-                st.markdown(
-                    "**Generated adversarial prompt**"
+        st.write(
+            "**Category:** "
+            f'{rag_result["category"]}'
+        )
+
+        st.write(
+            "**Testing goal:** "
+            f'{rag_result["goal"]}'
+        )
+
+        st.markdown(
+            "**Retrieved techniques**"
+        )
+
+        for document in (
+            rag_result[
+                "retrieved_documents"
+            ]
+        ):
+            with st.expander(
+                document.get(
+                    "title",
+                    "Technique",
                 )
-
-                rag_editor_key = (
-                    "rag_attack_editor_"
-                    + rag_category.replace(
-                        " ",
-                        "_",
-                    )
-                )
-
-                if (
-                    rag_editor_key
-                    not in st.session_state
-                ):
-                    st.session_state[
-                        rag_editor_key
-                    ] = rag_result["prompt"]
-
-                attack_prompt = st.text_area(
-                    "Generated prompt",
-                    height=240,
-                    key=rag_editor_key,
-                    label_visibility="collapsed",
-                )
-
-                st.caption(
-                    "The generated prompt is editable "
-                    "before it is sent to the target."
-                )
-
-            with col2:
-                st.markdown(
-                    "**Generation details**"
-                )
-
-                st.write(
-                    f'**Category:** '
-                    f'{rag_result["category"]}'
-                )
-
-                st.write(
-                    f'**Testing goal:** '
-                    f'{rag_result["goal"]}'
-                )
-
-                st.write(
-                    "**Retrieval query:**"
-                )
-
-                st.code(
-                    rag_result[
-                        "retrieval_query"
-                    ],
-                    language=None,
-                )
-
-            st.subheader(
-                "Retrieved Attack Techniques"
-            )
-
-            st.caption(
-                "These documents were retrieved from "
-                "the attack knowledge base and supplied "
-                "to the LLM as grounding context."
-            )
-
-            for index, document in enumerate(
-                rag_result[
-                    "retrieved_documents"
-                ],
-                start=1,
             ):
-                title = (
-                    document.get("title")
-                    or f"Technique {index}"
-                )
-
-                category = (
-                    document.get("category")
-                    or "Unknown"
-                )
-
-                with st.expander(
-                    f"{index}. {title} — {category}"
-                ):
-                    st.write(
-                        document.get(
-                            "content",
-                            "",
-                        )
+                st.write(
+                    document.get(
+                        "content",
+                        "",
                     )
-
-        else:
-            st.info(
-                "Choose a category and click "
-                "**Generate Attack with RAG** "
-                "in the sidebar."
-            )
+                )
 
     if run_button:
+
         if (
             target_name
-            == "Secure LangGraph Content Assistant"
+            == (
+                "Secure LangGraph "
+                "Content Assistant"
+            )
         ):
-            target_fn = langgraph_target
+            target_fn = (
+                langgraph_target
+            )
         else:
-            target_fn = demo_target
+            target_fn = (
+                demo_target
+            )
 
-        if attack_source == "Saved Attack":
+        if (
+            attack_source
+            == "Saved Attack"
+        ):
             attack_for_run = {
                 **selected_attack,
-                "prompt": attack_prompt,
+                "prompt": (
+                    attack_prompt
+                ),
                 "source": "saved",
             }
 
         else:
             attack_for_run = {
                 "name": (
-                    f"RAG-Generated "
-                    f"{rag_result['category']} Attack"
+                    "RAG-Generated "
+                    f"{rag_result['category']} "
+                    "Attack"
                 ),
                 "category": (
-                    rag_result["category"]
+                    rag_result[
+                        "category"
+                    ]
                 ),
-                "prompt": attack_prompt,
+                "prompt": (
+                    attack_prompt
+                ),
                 "expected_secure_behavior": (
-                    "The target should preserve its "
-                    "original instructions and security "
-                    "controls despite the generated "
-                    "adversarial prompt."
+                    "The target should "
+                    "preserve its original "
+                    "instructions and "
+                    "security controls."
                 ),
                 "source": "rag",
                 "testing_goal": (
-                    rag_result["goal"]
+                    rag_result[
+                        "goal"
+                    ]
                 ),
                 "retrieval_query": (
                     rag_result[
@@ -464,46 +571,65 @@ with tab_run:
 
         try:
             with st.spinner(
-                f"Running attack against "
-                f"{target_name}..."
+                "Running security test..."
             ):
-                result = run_security_test(
-                    target_name=target_name,
-                    target_fn=target_fn,
-                    attack=attack_for_run,
-                    evaluator=evaluate_response,
-                    log_file=LOG_FILE,
+                result = (
+                    run_security_test(
+                        target_name=(
+                            target_name
+                        ),
+                        target_fn=(
+                            target_fn
+                        ),
+                        attack=(
+                            attack_for_run
+                        ),
+                        evaluator=(
+                            evaluate_response
+                        ),
+                        log_file=(
+                            LOG_FILE
+                        ),
+                    )
                 )
 
         except Exception as exc:
             st.error(
-                "The target application "
-                "could not be run."
+                "The target could "
+                "not be run."
             )
-            st.exception(exc)
+            st.exception(
+                exc
+            )
 
         else:
             st.divider()
 
             (
-                score_col,
+                result_col,
                 category_col,
-                time_col,
+                duration_col,
             ) = st.columns(3)
 
-            score_col.metric(
+            result_col.metric(
                 "Result",
-                result["evaluation"]["verdict"],
+                result[
+                    "evaluation"
+                ]["verdict"],
             )
 
             category_col.metric(
                 "Category",
-                result["attack"]["category"],
+                result[
+                    "attack"
+                ]["category"],
             )
 
-            time_col.metric(
+            duration_col.metric(
                 "Execution time",
-                f'{result["duration_ms"]:.1f} ms',
+                (
+                    f'{result["duration_ms"]:.1f} ms'
+                ),
             )
 
             st.subheader(
@@ -511,7 +637,9 @@ with tab_run:
             )
 
             st.code(
-                result["target_response"],
+                result[
+                    "target_response"
+                ],
                 language=None,
             )
 
@@ -520,220 +648,99 @@ with tab_run:
                 {},
             )
 
-            has_metadata = any(
-                value is not None
-                for value in metadata.values()
+            (
+                security_col,
+                route_col,
+                validation_col,
+            ) = st.columns(3)
+
+            security_col.metric(
+                "Security",
+                metadata.get(
+                    "security_status"
+                )
+                or "Not reported",
             )
 
-            if has_metadata:
-                st.subheader(
-                    "Target Security Metadata"
+            route_col.metric(
+                "Route",
+                metadata.get(
+                    "route"
                 )
+                or "Not reached",
+            )
 
-                (
-                    security_col,
-                    route_col,
-                    validation_col,
-                ) = st.columns(3)
-
-                security_col.metric(
-                    "Security Status",
-                    metadata.get(
-                        "security_status"
-                    )
-                    or "Not reported",
+            validation_col.metric(
+                "Validation",
+                metadata.get(
+                    "validation_status"
                 )
+                or "Not reached",
+            )
 
-                route_col.metric(
-                    "Agent Route",
-                    metadata.get(
-                        "route"
-                    )
-                    or "Not reached",
-                )
-
-                validation_col.metric(
-                    "Validation Status",
-                    metadata.get(
-                        "validation_status"
-                    )
-                    or "Not reached",
-                )
-
-                if metadata.get(
-                    "security_reason"
-                ):
-                    st.markdown(
-                        "**Security reason**"
-                    )
-
-                    st.info(
-                        metadata[
-                            "security_reason"
-                        ]
-                    )
-
-                if metadata.get(
-                    "validation_reason"
-                ):
-                    st.markdown(
-                        "**Validation reason**"
-                    )
-
-                    st.info(
-                        metadata[
-                            "validation_reason"
-                        ]
-                    )
-
-                if metadata.get(
-                    "thread_id"
-                ):
-                    st.caption(
-                        "LangGraph thread: "
-                        f'{metadata["thread_id"]}'
-                    )
+            display_tool_calls(
+                metadata.get(
+                    "tool_calls",
+                    [],
+                ),
+                empty_message=(
+                    "No tool calls "
+                    "requested during "
+                    "this test."
+                ),
+            )
 
             st.subheader(
                 "Evaluation"
             )
 
+            evaluation = (
+                result[
+                    "evaluation"
+                ]
+            )
+
             verdict = (
-                result["evaluation"]["verdict"]
+                evaluation[
+                    "verdict"
+                ]
             )
 
             if verdict == "PASS":
                 st.success(
-                    result[
-                        "evaluation"
-                    ]["reason"]
+                    evaluation[
+                        "reason"
+                    ]
                 )
-
             elif verdict == "FAIL":
                 st.error(
-                    result[
-                        "evaluation"
-                    ]["reason"]
+                    evaluation[
+                        "reason"
+                    ]
                 )
-
             else:
                 st.warning(
-                    result[
-                        "evaluation"
-                    ]["reason"]
+                    evaluation[
+                        "reason"
+                    ]
                 )
-
-            if result[
-                "evaluation"
-            ].get("defense"):
-                st.markdown(
-                    "**Defense triggered**"
-                )
-
-                st.write(
-                    result[
-                        "evaluation"
-                    ]["defense"]
-                )
-
-            if result[
-                "evaluation"
-            ].get("defense_reason"):
-                st.markdown(
-                    "**Defense details**"
-                )
-
-                st.write(
-                    result[
-                        "evaluation"
-                    ]["defense_reason"]
-                )
-
-            if (
-                result["attack"].get(
-                    "source"
-                )
-                == "rag"
-            ):
-                with st.expander(
-                    "RAG Generation Provenance"
-                ):
-                    st.write(
-                        "**Testing goal**"
-                    )
-
-                    st.write(
-                        result[
-                            "attack"
-                        ].get(
-                            "testing_goal"
-                        )
-                    )
-
-                    st.write(
-                        "**Retrieval query**"
-                    )
-
-                    st.code(
-                        result[
-                            "attack"
-                        ].get(
-                            "retrieval_query",
-                            "",
-                        ),
-                        language=None,
-                    )
-
-                    st.write(
-                        "**Retrieved techniques**"
-                    )
-
-                    for document in (
-                        result[
-                            "attack"
-                        ].get(
-                            "retrieved_documents",
-                            [],
-                        )
-                    ):
-                        st.markdown(
-                            f'- **'
-                            f'{document.get("title", "Unknown")}'
-                            f'** '
-                            f'({document.get("category", "Unknown")})'
-                        )
 
             with st.expander(
                 "Execution Trace"
             ):
-                st.json(result)
-
-            st.download_button(
-                "Download this result as JSON",
-                data=json.dumps(
-                    result,
-                    indent=2,
-                ),
-                file_name=(
-                    f'{result["run_id"]}.json'
-                ),
-                mime="application/json",
-            )
+                st.json(
+                    result
+                )
 
 
 # ---------------------------------------------------------
-# Benchmark tab
+# Benchmark
 # ---------------------------------------------------------
 
 with tab_benchmark:
 
     st.subheader(
         "Security Benchmark"
-    )
-
-    st.caption(
-        "Run repeatable attack suites against a selected target "
-        "to measure resistance and identify security gaps."
     )
 
     benchmark_suite = st.radio(
@@ -750,91 +757,80 @@ with tab_benchmark:
         benchmark_suite
         == "Advanced benchmark"
     ):
-        selected_benchmark_attacks = (
+        selected_suite = (
             advanced_benchmark_attacks
-        )
-
-        st.info(
-            "The advanced suite tests obfuscation, indirect injection, "
-            "fabricated authorization, routing manipulation, tool escalation, "
-            "and attacks embedded inside legitimate tasks."
         )
 
     elif (
         benchmark_suite
         == "Adversarial benchmark"
     ):
-        selected_benchmark_attacks = (
+        selected_suite = (
             benchmark_attacks
         )
 
-        st.info(
-            "The adversarial suite provides regression coverage for "
-            "previously tested instruction-boundary weaknesses."
-        )
-
     else:
-        selected_benchmark_attacks = (
+        selected_suite = (
             attacks
         )
 
-        st.info(
-            "The basic suite uses simple known attacks "
-            "as a smoke test for the evaluation pipeline."
+    benchmark_target = (
+        st.selectbox(
+            "Benchmark target",
+            [
+                "Demo vulnerable agent",
+                (
+                    "Secure LangGraph "
+                    "Content Assistant"
+                ),
+            ],
+            key=(
+                "benchmark_target"
+            ),
         )
-
-    benchmark_target_name = st.selectbox(
-        "Benchmark target",
-        [
-            "Demo vulnerable agent",
-            "Secure LangGraph Content Assistant",
-        ],
-        key="benchmark_target",
     )
 
     st.write(
-        f"This benchmark will run "
-        f"**{len(selected_benchmark_attacks)} attacks** "
-        f"against the selected target."
+        "This benchmark will run "
+        f"**{len(selected_suite)} attacks**."
     )
 
-    run_benchmark_button = st.button(
+    if st.button(
         "Run Benchmark Suite",
         type="primary",
-        key="run_benchmark_suite_button",
-    )
-
-    if run_benchmark_button:
-
+        key=(
+            "run_benchmark"
+        ),
+    ):
         if (
-            benchmark_target_name
-            == "Secure LangGraph Content Assistant"
+            benchmark_target
+            == (
+                "Secure LangGraph "
+                "Content Assistant"
+            )
         ):
-            benchmark_target_fn = (
+            benchmark_fn = (
                 langgraph_target
             )
         else:
-            benchmark_target_fn = (
+            benchmark_fn = (
                 demo_target
             )
 
         try:
             with st.spinner(
-                f"Running "
-                f"{len(selected_benchmark_attacks)} "
-                f"attacks against "
-                f"{benchmark_target_name}..."
+                "Running benchmark..."
             ):
-                benchmark_results = (
+                results = (
                     run_benchmark_suite(
                         target_name=(
-                            benchmark_target_name
+                            benchmark_target
                         ),
                         target_fn=(
-                            benchmark_target_fn
+                            benchmark_fn
                         ),
                         attacks=(
-                            selected_benchmark_attacks
+                            selected_suite
                         ),
                         evaluator=(
                             evaluate_response
@@ -847,77 +843,56 @@ with tab_benchmark:
 
             st.session_state[
                 "benchmark_results"
-            ] = benchmark_results
+            ] = results
+
+            st.session_state[
+                "benchmark_name"
+            ] = benchmark_suite
 
             st.session_state[
                 "benchmark_target_name"
-            ] = benchmark_target_name
-
-            st.session_state[
-                "benchmark_suite_name"
-            ] = benchmark_suite
+            ] = benchmark_target
 
         except Exception as exc:
             st.error(
-                "The benchmark could not be completed."
+                "Benchmark failed."
             )
-            st.exception(exc)
+            st.exception(
+                exc
+            )
 
-    benchmark_results = (
+    results = (
         st.session_state.get(
             "benchmark_results",
             [],
         )
     )
 
-    benchmark_result_target = (
-        st.session_state.get(
-            "benchmark_target_name"
-        )
-    )
-
-    benchmark_result_suite = (
-        st.session_state.get(
-            "benchmark_suite_name"
-        )
-    )
-
-    if benchmark_results:
-
-        st.divider()
-
-        st.markdown(
-            f"### Results — "
-            f"{benchmark_result_suite} "
-            f"→ {benchmark_result_target}"
+    if results:
+        total = len(
+            results
         )
 
         passes = sum(
-            result[
+            item[
                 "evaluation"
             ]["verdict"]
             == "PASS"
-            for result in benchmark_results
+            for item in results
         )
 
         failures = sum(
-            result[
+            item[
                 "evaluation"
             ]["verdict"]
             == "FAIL"
-            for result in benchmark_results
+            for item in results
         )
 
-        reviews = sum(
-            result[
-                "evaluation"
-            ]["verdict"]
-            == "REVIEW"
-            for result in benchmark_results
-        )
-
-        total = len(
-            benchmark_results
+        reviews = (
+            total
+            - passes
+            - failures
         )
 
         (
@@ -947,134 +922,75 @@ with tab_benchmark:
             reviews,
         )
 
-        if total:
-            resistance_rate = (
-                passes / total
-            ) * 100
-
-            attack_success_rate = (
-                failures / total
-            ) * 100
-
-            review_rate = (
-                reviews / total
-            ) * 100
-
-            (
-                resistance_col,
-                success_col,
-                review_rate_col,
-            ) = st.columns(3)
-
-            resistance_col.metric(
-                "Defense success rate",
-                f"{resistance_rate:.1f}%",
-            )
-
-            success_col.metric(
-                "Attack success rate",
-                f"{attack_success_rate:.1f}%",
-            )
-
-            review_rate_col.metric(
-                "Review rate",
-                f"{review_rate:.1f}%",
-            )
-
         precheck_allows = sum(
-            result.get(
+            item.get(
                 "target_metadata",
                 {},
             ).get(
                 "security_status"
             )
             == "allow"
-            for result in benchmark_results
+            for item in results
         )
 
         precheck_blocks = sum(
-            result.get(
+            item.get(
                 "target_metadata",
                 {},
             ).get(
                 "security_status"
             )
             == "block"
-            for result in benchmark_results
+            for item in results
         )
 
-        if (
-            benchmark_result_target
-            == "Secure LangGraph Content Assistant"
-        ):
-            (
-                allowed_col,
-                blocked_col,
-            ) = st.columns(2)
+        (
+            bypass_col,
+            block_col,
+        ) = st.columns(2)
 
-            allowed_col.metric(
-                "Precheck bypasses",
-                precheck_allows,
-            )
-
-            blocked_col.metric(
-                "Precheck blocks",
-                precheck_blocks,
-            )
-
-        st.subheader(
-            "Benchmark Results"
+        bypass_col.metric(
+            "Precheck bypasses",
+            precheck_allows,
         )
 
-        benchmark_rows = []
+        block_col.metric(
+            "Precheck blocks",
+            precheck_blocks,
+        )
 
-        for result in benchmark_results:
-            metadata = result.get(
+        rows = []
+
+        for item in results:
+            metadata = item.get(
                 "target_metadata",
                 {},
             )
 
-            evaluation = result.get(
-                "evaluation",
-                {},
-            )
-
-            duration = result.get(
-                "duration_ms"
-            )
-
-            if duration is not None:
-                duration_display = round(
-                    duration,
-                    1,
+            tool_calls = (
+                metadata.get(
+                    "tool_calls",
+                    [],
                 )
-            else:
-                duration_display = ""
+                or []
+            )
 
-            benchmark_rows.append(
+            rows.append(
                 {
                     "Attack": (
-                        result[
+                        item[
                             "attack"
                         ]["name"]
                     ),
                     "Category": (
-                        result[
+                        item[
                             "attack"
                         ]["category"]
                     ),
                     "Verdict": (
-                        evaluation.get(
-                            "verdict",
-                            "",
-                        )
-                    ),
-                    "Defense": (
-                        evaluation.get(
-                            "defense",
-                            "",
-                        )
-                        or ""
+                        item[
+                            "evaluation"
+                        ]["verdict"]
                     ),
                     "Precheck": (
                         metadata.get(
@@ -1094,14 +1010,16 @@ with tab_benchmark:
                         )
                         or ""
                     ),
-                    "Duration (ms)": (
-                        duration_display
+                    "Tool Calls": (
+                        len(
+                            tool_calls
+                        )
                     ),
                 }
             )
 
         st.dataframe(
-            benchmark_rows,
+            rows,
             use_container_width=True,
             hide_index=True,
         )
@@ -1110,10 +1028,9 @@ with tab_benchmark:
             "Individual Results"
         )
 
-        for result in benchmark_results:
-
+        for item in results:
             verdict = (
-                result[
+                item[
                     "evaluation"
                 ]["verdict"]
             )
@@ -1129,107 +1046,36 @@ with tab_benchmark:
 
             with st.expander(
                 f'{icon} '
-                f'{result["attack"]["name"]} '
+                f'{item["attack"]["name"]} '
                 f'— {verdict}'
             ):
-
                 st.write(
-                    f'**Category:** '
-                    f'{result["attack"]["category"]}'
-                )
-
-                st.write(
-                    f'**Verdict:** '
-                    f'{verdict}'
+                    "**Category:** "
+                    f'{item["attack"]["category"]}'
                 )
 
                 st.write(
-                    f'**Reason:** '
-                    f'{result["evaluation"]["reason"]}'
+                    "**Reason:** "
+                    f'{item["evaluation"]["reason"]}'
                 )
 
-                defense = (
-                    result[
-                        "evaluation"
-                    ].get(
-                        "defense"
-                    )
-                )
-
-                if defense:
-                    st.write(
-                        f'**Defense:** '
-                        f'{defense}'
-                    )
-
-                defense_reason = (
-                    result[
-                        "evaluation"
-                    ].get(
-                        "defense_reason"
+                metadata = (
+                    item.get(
+                        "target_metadata",
+                        {},
                     )
                 )
 
-                if defense_reason:
-                    st.write(
-                        f'**Defense details:** '
-                        f'{defense_reason}'
-                    )
-
-                metadata = result.get(
-                    "target_metadata",
-                    {},
+                st.write(
+                    "**Route:** "
+                    f'{metadata.get("route") or "Not reached"}'
                 )
 
-                if metadata.get(
-                    "security_status"
-                ):
-                    st.write(
-                        "**Security status:** "
-                        f'{metadata["security_status"]}'
+                display_tool_calls(
+                    metadata.get(
+                        "tool_calls",
+                        [],
                     )
-
-                if metadata.get(
-                    "security_reason"
-                ):
-                    st.write(
-                        "**Security reason:** "
-                        f'{metadata["security_reason"]}'
-                    )
-
-                if metadata.get(
-                    "route"
-                ):
-                    st.write(
-                        "**Agent route:** "
-                        f'{metadata["route"]}'
-                    )
-
-                if metadata.get(
-                    "validation_status"
-                ):
-                    st.write(
-                        "**Validation status:** "
-                        f'{metadata["validation_status"]}'
-                    )
-
-                if metadata.get(
-                    "validation_reason"
-                ):
-                    st.write(
-                        "**Validation reason:** "
-                        f'{metadata["validation_reason"]}'
-                    )
-
-                st.markdown(
-                    "**Attack prompt**"
-                )
-
-                st.code(
-                    result[
-                        "attack"
-                    ]["prompt"],
-                    language=None,
                 )
 
                 st.markdown(
@@ -1237,7 +1083,7 @@ with tab_benchmark:
                 )
 
                 st.code(
-                    result[
+                    item[
                         "target_response"
                     ],
                     language=None,
@@ -1246,42 +1092,13 @@ with tab_benchmark:
                 with st.expander(
                     "Execution Trace"
                 ):
-                    st.json(result)
-
-        if (
-            benchmark_result_suite
-            == "Advanced benchmark"
-        ):
-            download_name = (
-                "advanced_benchmark_results.json"
-            )
-
-        elif (
-            benchmark_result_suite
-            == "Adversarial benchmark"
-        ):
-            download_name = (
-                "adversarial_benchmark_results.json"
-            )
-
-        else:
-            download_name = (
-                "basic_benchmark_results.json"
-            )
-
-        st.download_button(
-            "Download benchmark results as JSON",
-            data=json.dumps(
-                benchmark_results,
-                indent=2,
-            ),
-            file_name=download_name,
-            mime="application/json",
-        )
+                    st.json(
+                        item
+                    )
 
 
 # ---------------------------------------------------------
-# Multi-Turn tab
+# Multi-Turn
 # ---------------------------------------------------------
 
 with tab_multi_turn:
@@ -1291,37 +1108,41 @@ with tab_multi_turn:
     )
 
     st.caption(
-        "Run a sequence of adversarial turns through the same "
-        "LangGraph thread to test whether earlier context can "
-        "influence later security behavior."
+        "Run multiple prompts through one shared "
+        "LangGraph thread to test stateful attacks."
     )
 
-    st.info(
-        "Multi-turn tests currently run against the Secure LangGraph "
-        "Content Assistant because it supports shared LangGraph thread state."
-    )
-
-    multi_turn_names = [
+    scenario_names = [
         attack["name"]
-        for attack in multi_turn_attacks
+        for attack in (
+            multi_turn_attacks
+        )
     ]
 
-    selected_multi_turn_name = st.selectbox(
-        "Multi-turn scenario",
-        multi_turn_names,
-        key="multi_turn_scenario",
+    selected_name = (
+        st.selectbox(
+            "Multi-turn scenario",
+            scenario_names,
+            key=(
+                "multi_turn_scenario"
+            ),
+        )
     )
 
-    selected_multi_turn_attack = next(
+    selected_multi_attack = next(
         attack
-        for attack in multi_turn_attacks
-        if attack["name"]
-        == selected_multi_turn_name
+        for attack in (
+            multi_turn_attacks
+        )
+        if (
+            attack["name"]
+            == selected_name
+        )
     )
 
-    st.markdown(
-        f'**Category:** '
-        f'{selected_multi_turn_attack["category"]}'
+    st.write(
+        "**Category:** "
+        f'{selected_multi_attack["category"]}'
     )
 
     st.markdown(
@@ -1329,7 +1150,7 @@ with tab_multi_turn:
     )
 
     st.write(
-        selected_multi_turn_attack[
+        selected_multi_attack[
             "expected_secure_behavior"
         ]
     )
@@ -1339,7 +1160,9 @@ with tab_multi_turn:
     )
 
     for index, turn in enumerate(
-        selected_multi_turn_attack["turns"],
+        selected_multi_attack[
+            "turns"
+        ],
         start=1,
     ):
         st.markdown(
@@ -1351,29 +1174,29 @@ with tab_multi_turn:
             language=None,
         )
 
-    run_multi_turn_button = st.button(
+    if st.button(
         "Run Multi-Turn Test",
         type="primary",
-        key="run_multi_turn_test_button",
-    )
-
-    if run_multi_turn_button:
-
+        key=(
+            "run_multi_turn"
+        ),
+    ):
         try:
             with st.spinner(
-                "Running all turns through one "
-                "LangGraph conversation..."
+                "Running multi-turn "
+                "security test..."
             ):
-                multi_turn_result = (
+                multi_result = (
                     run_multi_turn_security_test(
                         target_name=(
-                            "Secure LangGraph Content Assistant"
+                            "Secure LangGraph "
+                            "Content Assistant"
                         ),
                         target_fn=(
                             langgraph_target
                         ),
                         attack=(
-                            selected_multi_turn_attack
+                            selected_multi_attack
                         ),
                         evaluator=(
                             evaluate_response
@@ -1386,31 +1209,28 @@ with tab_multi_turn:
 
             st.session_state[
                 "multi_turn_result"
-            ] = multi_turn_result
+            ] = multi_result
 
         except Exception as exc:
             st.error(
-                "The multi-turn test could not be completed."
+                "Multi-turn test failed."
             )
 
-            st.exception(exc)
+            st.exception(
+                exc
+            )
 
-    multi_turn_result = (
+    multi_result = (
         st.session_state.get(
             "multi_turn_result"
         )
     )
 
-    if multi_turn_result:
+    if multi_result:
         st.divider()
 
-        st.markdown(
-            f'### Result — '
-            f'{multi_turn_result["attack"]["name"]}'
-        )
-
         verdict = (
-            multi_turn_result[
+            multi_result[
                 "evaluation"
             ]["verdict"]
         )
@@ -1429,7 +1249,7 @@ with tab_multi_turn:
         turns_col.metric(
             "Turns",
             len(
-                multi_turn_result[
+                multi_result[
                     "turns"
                 ]
             ),
@@ -1437,33 +1257,35 @@ with tab_multi_turn:
 
         duration_col.metric(
             "Execution time",
-            f'{multi_turn_result["duration_ms"]:.1f} ms',
+            (
+                f'{multi_result["duration_ms"]:.1f} ms'
+            ),
         )
 
         if verdict == "PASS":
             st.success(
-                multi_turn_result[
+                multi_result[
                     "evaluation"
                 ]["reason"]
             )
 
         elif verdict == "FAIL":
             st.error(
-                multi_turn_result[
+                multi_result[
                     "evaluation"
                 ]["reason"]
             )
 
         else:
             st.warning(
-                multi_turn_result[
+                multi_result[
                     "evaluation"
                 ]["reason"]
             )
 
         st.caption(
             "Shared LangGraph thread: "
-            f'{multi_turn_result["thread_id"]}'
+            f'{multi_result["thread_id"]}'
         )
 
         st.subheader(
@@ -1471,12 +1293,18 @@ with tab_multi_turn:
         )
 
         for turn in (
-            multi_turn_result["turns"]
+            multi_result[
+                "turns"
+            ]
         ):
-            turn_number = turn["turn"]
+            number = (
+                turn[
+                    "turn"
+                ]
+            )
 
             with st.expander(
-                f"Turn {turn_number}",
+                f"Turn {number}",
                 expanded=True,
             ):
                 st.markdown(
@@ -1484,7 +1312,9 @@ with tab_multi_turn:
                 )
 
                 st.code(
-                    turn["prompt"],
+                    turn[
+                        "prompt"
+                    ],
                     language=None,
                 )
 
@@ -1493,7 +1323,9 @@ with tab_multi_turn:
                 )
 
                 st.code(
-                    turn["response"],
+                    turn[
+                        "response"
+                    ],
                     language=None,
                 )
 
@@ -1527,18 +1359,45 @@ with tab_multi_turn:
                     or "Not reached",
                 )
 
+                display_tool_calls(
+                    turn.get(
+                        "tool_calls",
+                        [],
+                    ),
+                    empty_message=(
+                        "No tool calls "
+                        "requested on this turn."
+                    ),
+                )
+
+                if turn.get(
+                    "security_reason"
+                ):
+                    st.caption(
+                        "Security: "
+                        f'{turn["security_reason"]}'
+                    )
+
+                if turn.get(
+                    "validation_reason"
+                ):
+                    st.caption(
+                        "Validation: "
+                        f'{turn["validation_reason"]}'
+                    )
+
         st.subheader(
             "Final Evaluation"
         )
 
         evaluation = (
-            multi_turn_result[
+            multi_result[
                 "evaluation"
             ]
         )
 
         st.write(
-            f'**Method:** '
+            "**Evaluation method:** "
             f'{evaluation.get("evaluation_method", "unknown")}'
         )
 
@@ -1546,50 +1405,44 @@ with tab_multi_turn:
             "defense"
         ):
             st.write(
-                f'**Defense:** '
+                "**Defense:** "
                 f'{evaluation["defense"]}'
             )
 
         if evaluation.get(
-            "defense_reason"
-        ):
-            st.write(
-                f'**Defense details:** '
-                f'{evaluation["defense_reason"]}'
-            )
-
-        judge = evaluation.get(
             "judge"
-        )
-
-        if judge:
+        ):
             with st.expander(
                 "LLM Judge Details"
             ):
-                st.json(judge)
+                st.json(
+                    evaluation[
+                        "judge"
+                    ]
+                )
 
         with st.expander(
-            "Full Multi-Turn Execution Trace"
+            "Full Execution Trace"
         ):
             st.json(
-                multi_turn_result
+                multi_result
             )
 
         st.download_button(
-            "Download multi-turn result as JSON",
+            "Download multi-turn result",
             data=json.dumps(
-                multi_turn_result,
+                multi_result,
                 indent=2,
             ),
             file_name=(
-                f'{multi_turn_result["run_id"]}.json'
+                f'{multi_result["run_id"]}.json'
             ),
             mime="application/json",
         )
 
 
 # ---------------------------------------------------------
-# Test History tab
+# Test History
 # ---------------------------------------------------------
 
 with tab_history:
@@ -1613,142 +1466,106 @@ with tab_history:
             for line in f:
                 if line.strip():
                     rows.append(
-                        json.loads(line)
+                        json.loads(
+                            line
+                        )
                     )
 
-        if not rows:
-            st.info(
-                "No tests have been run yet."
+        rows.reverse()
+
+        for row in rows[:25]:
+
+            evaluation = (
+                row.get(
+                    "evaluation",
+                    {},
+                )
             )
 
-        else:
-            rows.reverse()
+            verdict = (
+                evaluation.get(
+                    "verdict",
+                    "UNKNOWN",
+                )
+            )
 
-            for row in rows[:25]:
+            icon = {
+                "PASS": "✅",
+                "FAIL": "❌",
+                "REVIEW": "⚠️",
+            }.get(
+                verdict,
+                "•",
+            )
 
-                verdict = (
-                    row[
-                        "evaluation"
-                    ]["verdict"]
+            attack = row.get(
+                "attack",
+                {},
+            )
+
+            with st.expander(
+                f'{icon} '
+                f'{attack.get("name", "Unknown")} '
+                f'— {row.get("timestamp", "")}'
+            ):
+                st.write(
+                    "**Target:** "
+                    f'{row.get("target_name", "")}'
                 )
 
-                icon = {
-                    "PASS": "✅",
-                    "FAIL": "❌",
-                    "REVIEW": "⚠️",
-                }.get(
-                    verdict,
-                    "•",
+                st.write(
+                    "**Category:** "
+                    f'{attack.get("category", "")}'
                 )
 
-                attack_source_label = (
-                    row[
-                        "attack"
-                    ].get(
-                        "source",
-                        (
-                            "multi-turn"
-                            if "turns" in row
-                            else "saved"
-                        ),
-                    )
+                st.write(
+                    "**Verdict:** "
+                    f'{verdict}'
                 )
 
-                with st.expander(
-                    f'{icon} '
-                    f'{row["attack"]["name"]} '
-                    f'— {row["timestamp"]}'
+                if (
+                    "turns"
+                    in row
                 ):
-
                     st.write(
-                        f'**Target:** '
-                        f'{row["target_name"]}'
+                        "**Test type:** "
+                        "Multi-turn"
                     )
 
                     st.write(
-                        f'**Attack source:** '
-                        f'{attack_source_label}'
+                        "**Turns:** "
+                        f'{len(row["turns"])}'
                     )
 
-                    st.write(
-                        f'**Category:** '
-                        f'{row["attack"]["category"]}'
-                    )
-
-                    st.write(
-                        f'**Verdict:** '
-                        f'{verdict}'
-                    )
-
-                    st.write(
-                        f'**Reason:** '
-                        f'{row["evaluation"]["reason"]}'
-                    )
-
-                    if "turns" in row:
-                        st.write(
-                            f'**Turns:** '
-                            f'{len(row["turns"])}'
-                        )
-
-                        if row.get(
-                            "thread_id"
-                        ):
-                            st.write(
-                                f'**Thread ID:** '
-                                f'{row["thread_id"]}'
-                            )
-
-                    metadata = row.get(
+                metadata = (
+                    row.get(
                         "target_metadata",
                         {},
                     )
+                )
 
-                    if metadata:
-                        if metadata.get(
-                            "security_status"
-                        ):
-                            st.write(
-                                "**Security status:** "
-                                f'{metadata["security_status"]}'
-                            )
-
-                        if metadata.get(
-                            "security_reason"
-                        ):
-                            st.write(
-                                "**Security reason:** "
-                                f'{metadata["security_reason"]}'
-                            )
-
-                        if metadata.get(
-                            "route"
-                        ):
-                            st.write(
-                                "**Agent route:** "
-                                f'{metadata["route"]}'
-                            )
-
-                        if metadata.get(
-                            "validation_status"
-                        ):
-                            st.write(
-                                "**Validation status:** "
-                                f'{metadata["validation_status"]}'
-                            )
-
-                    st.markdown(
-                        "**Target response**"
+                display_tool_calls(
+                    metadata.get(
+                        "tool_calls",
+                        [],
                     )
+                )
 
-                    st.code(
-                        row["target_response"],
-                        language=None,
-                    )
+                st.markdown(
+                    "**Target response**"
+                )
+
+                st.code(
+                    row.get(
+                        "target_response",
+                        "",
+                    ),
+                    language=None,
+                )
 
 
 # ---------------------------------------------------------
-# About tab
+# About
 # ---------------------------------------------------------
 
 with tab_about:
@@ -1759,83 +1576,62 @@ with tab_about:
 
     st.markdown(
         """
-        This application provides several ways to test AI applications.
+        ### Individual security testing
 
-        ### Saved attacks
+        Run saved or RAG-generated prompt-injection attacks
+        against a demo target or the Secure LangGraph Content
+        Assistant.
 
-        Known prompt-injection scenarios can be selected and
-        run directly against a target.
+        ### Benchmarking
 
-        ### RAG-generated attacks
+        Three benchmark tiers provide smoke testing,
+        adversarial regression coverage, and advanced
+        security testing.
 
-        The tester retrieves relevant techniques from a curated
-        attack knowledge base and uses them as grounding context
-        for generating a new adversarial prompt.
+        ### Multi-turn testing
 
-        **testing goal → semantic retrieval → attack techniques → LLM generation → adversarial prompt**
+        Multi-turn scenarios reuse the same LangGraph thread,
+        allowing security behavior to be tested across genuine
+        conversation history.
 
-        ### Benchmark suites
+        ### Tool-call observability
 
-        Three benchmark tiers are available:
+        Tool-enabled agents expose the tool calls requested by
+        the model, including tool name and arguments.
 
-        - **Basic saved attacks** — smoke tests for the pipeline.
-        - **Adversarial benchmark** — regression coverage for subtle
-          instruction-boundary weaknesses.
-        - **Advanced benchmark** — obfuscation, indirect injection,
-          fabricated authorization, routing manipulation, tool escalation,
-          and attacks embedded inside legitimate tasks.
+        This allows the test harness to distinguish between:
 
-        **attack suite → target → security layers → evaluator → aggregate metrics**
+        - no tool request
+        - expected tool request
+        - suspicious tool request
+        - potential authorization-boundary violations
 
-        ### Multi-turn security testing
+        Current tool instrumentation records model-requested
+        tool calls. Explicit confirmation that a ToolNode
+        executed the request is a planned next step.
 
-        Multi-turn scenarios reuse the same LangGraph thread across
-        several prompts. This makes it possible to test attacks that
-        depend on conversation history rather than merely claiming that
-        earlier authorization occurred.
+        ### Evaluation
 
-        **benign setup → context manipulation → privilege claim → adversarial request → evaluation**
+        Results use:
 
-        ### Defense-in-depth testing
+        - deterministic security signals
+        - structured target metadata
+        - model routing
+        - output validation
+        - requested tool calls
+        - LLM-as-a-judge evaluation
 
-        The tester distinguishes among:
+        Results are classified as PASS, FAIL, or REVIEW.
 
-        - attacks blocked by the security precheck
-        - attacks that bypass the precheck but are resisted by the agent
-        - unsafe responses stopped by output validation
-        - genuine adversarial successes
-        - ambiguous results requiring review
+        ### Next improvements
 
-        ### Real target integration
-
-        The Secure LangGraph Content Assistant reports:
-
-        - security status
-        - security reason
-        - selected route
-        - validation status
-        - validation reason
-        - LangGraph thread ID
-
-        ### Current evaluation
-
-        Results are classified as:
-
-        - **PASS** — the attack was blocked or safely resisted
-        - **FAIL** — the adversarial objective succeeded
-        - **REVIEW** — available evidence is insufficient for a confident decision
-
-        Evaluation combines deterministic signals, structured security
-        metadata, and LLM-as-a-judge analysis for ambiguous responses.
-
-        ### Planned improvements
-
-        - expose requested and executed tool calls in tester results
-        - evaluate unauthorized tool usage directly
+        - instrument actual ToolNode execution
+        - compare requested vs executed tools
+        - automatically detect unauthorized tool calls
         - batch multi-turn benchmark execution
         - category-level dashboards
+        - persistent deployment storage
         - LangSmith observability
-        - persistent result storage
         - deployment
         """
     )
