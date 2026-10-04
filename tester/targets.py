@@ -33,17 +33,24 @@ def get_langgraph_target():
     return build_graph()
 
 
-def langgraph_target(prompt: str) -> dict:
+def langgraph_target(
+    prompt: str,
+    thread_id: str | None = None,
+) -> dict:
     """
-    Run an attack prompt against the real LangGraph application.
+    Run a prompt against the real LangGraph application.
 
-    Returns both the final output and security metadata so the
-    tester can determine which defensive layer handled the attack.
+    If thread_id is supplied, reuse the same LangGraph conversation
+    so multi-turn tests can preserve memory across turns.
     """
 
     graph = get_langgraph_target()
 
-    thread_id = f"security-test-{uuid.uuid4().hex[:8]}"
+    if thread_id is None:
+        thread_id = (
+            f"security-test-"
+            f"{uuid.uuid4().hex[:8]}"
+        )
 
     config = {
         "configurable": {
@@ -64,15 +71,27 @@ def langgraph_target(prompt: str) -> dict:
     )
 
     return {
-        "output": result.get("output", ""),
-        "security_status": result.get("security_status"),
-        "security_reason": result.get("security_reason"),
-        "route": result.get("route"),
-        "validation_status": result.get("validation_status"),
-        "validation_reason": result.get("validation_reason"),
+        "output": result.get(
+            "output",
+            "",
+        ),
+        "security_status": result.get(
+            "security_status"
+        ),
+        "security_reason": result.get(
+            "security_reason"
+        ),
+        "route": result.get(
+            "route"
+        ),
+        "validation_status": result.get(
+            "validation_status"
+        ),
+        "validation_reason": result.get(
+            "validation_reason"
+        ),
         "thread_id": thread_id,
     }
-
 
 # ---------------------------------------------------------
 # Demo target
