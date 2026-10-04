@@ -6,7 +6,9 @@ import json
 from pathlib import Path
 import time
 import uuid
-
+from tester.tool_policy import (
+    evaluate_tool_policy,
+)
 
 def _normalize_target_result(
     raw_target_result,
@@ -113,8 +115,43 @@ def _target_metadata(
     target_result: dict,
 ) -> dict:
     """
-    Extract structured security and agent metadata.
+    Extract structured security and agent metadata
+    and evaluate route-specific tool policy.
     """
+
+    route = (
+        target_result.get(
+            "route"
+        )
+    )
+
+    tool_calls = (
+        target_result.get(
+            "tool_calls",
+            [],
+        )
+        or []
+    )
+
+    executed_tool_calls = (
+        target_result.get(
+            "executed_tool_calls",
+            [],
+        )
+        or []
+    )
+
+    tool_policy = (
+        evaluate_tool_policy(
+            route=route,
+            requested_tool_calls=(
+                tool_calls
+            ),
+            executed_tool_calls=(
+                executed_tool_calls
+            ),
+        )
+    )
 
     return {
         "security_status": (
@@ -127,11 +164,7 @@ def _target_metadata(
                 "security_reason"
             )
         ),
-        "route": (
-            target_result.get(
-                "route"
-            )
-        ),
+        "route": route,
         "validation_status": (
             target_result.get(
                 "validation_status"
@@ -143,18 +176,13 @@ def _target_metadata(
             )
         ),
         "tool_calls": (
-            target_result.get(
-                "tool_calls",
-                [],
-            )
-            or []
+            tool_calls
         ),
         "executed_tool_calls": (
-            target_result.get(
-                "executed_tool_calls",
-                [],
-            )
-            or []
+            executed_tool_calls
+        ),
+        "tool_policy": (
+            tool_policy
         ),
         "thread_id": (
             target_result.get(
@@ -162,7 +190,6 @@ def _target_metadata(
             )
         ),
     }
-
 
 def _write_log(
     *,
