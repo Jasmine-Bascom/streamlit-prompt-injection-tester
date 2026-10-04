@@ -39,6 +39,10 @@ attacks = load_attacks(
     APP_DIR / "data" / "attacks.json"
 )
 
+benchmark_attacks = load_attacks(
+    APP_DIR / "data" / "benchmark_attacks.json"
+)
+
 attack_knowledge = load_attack_knowledge()
 
 rag_categories = sorted(
@@ -172,12 +176,10 @@ with st.sidebar:
                         goal=testing_goal,
                     )
 
-                # Save generated result across Streamlit reruns.
                 st.session_state[
                     "rag_generated_result"
                 ] = rag_result
 
-                # Store generated prompt in the editor.
                 editor_key = (
                     "rag_attack_editor_"
                     + rag_category.replace(
@@ -198,7 +200,6 @@ with st.sidebar:
 
                 st.exception(exc)
 
-        # Recover generated result after Streamlit reruns.
         if (
             "rag_generated_result"
             in st.session_state
@@ -208,8 +209,6 @@ with st.sidebar:
                 "rag_generated_result"
             ]
 
-            # Only use it if it belongs to the
-            # currently selected category.
             if (
                 stored_result.get("category")
                 == rag_category
@@ -366,8 +365,6 @@ with tab_run:
                     )
                 )
 
-                # If the key does not exist yet,
-                # initialize it from the generated result.
                 if (
                     rag_editor_key
                     not in st.session_state
@@ -472,10 +469,6 @@ with tab_run:
 
     if run_button:
 
-        # ---------------------------------------------
-        # Target selection
-        # ---------------------------------------------
-
         if (
             target_name
             == "Secure LangGraph Content Assistant"
@@ -486,10 +479,6 @@ with tab_run:
         else:
 
             target_fn = demo_target
-
-        # ---------------------------------------------
-        # Build attack object
-        # ---------------------------------------------
 
         if attack_source == "Saved Attack":
 
@@ -532,10 +521,6 @@ with tab_run:
                 ),
             }
 
-        # ---------------------------------------------
-        # Execute
-        # ---------------------------------------------
-
         try:
 
             with st.spinner(
@@ -563,10 +548,6 @@ with tab_run:
         else:
 
             st.divider()
-
-            # -----------------------------------------
-            # High-level result
-            # -----------------------------------------
 
             (
                 score_col,
@@ -749,7 +730,9 @@ with tab_run:
 
             if result[
                 "evaluation"
-            ].get("defense_reason"):
+            ].get(
+                "defense_reason"
+            ):
 
                 st.markdown(
                     "**Defense details**"
@@ -858,9 +841,52 @@ with tab_benchmark:
     )
 
     st.caption(
-        "Run all saved attacks against a target to establish "
-        "a repeatable baseline before security hardening."
+        "Run a repeatable attack suite against a selected target "
+        "to measure resistance and identify security gaps."
     )
+
+    # -----------------------------------------------------
+    # Benchmark suite selection
+    # -----------------------------------------------------
+
+    benchmark_suite = st.radio(
+        "Benchmark suite",
+        [
+            "Basic saved attacks",
+            "Adversarial benchmark",
+        ],
+        horizontal=True,
+    )
+
+    if (
+        benchmark_suite
+        == "Adversarial benchmark"
+    ):
+
+        selected_benchmark_attacks = (
+            benchmark_attacks
+        )
+
+        st.info(
+            "The adversarial suite uses more subtle attacks "
+            "designed to test whether defenses can handle "
+            "prompt injection beyond obvious keyword patterns."
+        )
+
+    else:
+
+        selected_benchmark_attacks = (
+            attacks
+        )
+
+        st.info(
+            "The basic suite uses simple known attacks "
+            "as a smoke test for the evaluation pipeline."
+        )
+
+    # -----------------------------------------------------
+    # Benchmark target
+    # -----------------------------------------------------
 
     benchmark_target_name = st.selectbox(
         "Benchmark target",
@@ -873,7 +899,7 @@ with tab_benchmark:
 
     st.write(
         f"This benchmark will run "
-        f"**{len(attacks)} saved attacks** "
+        f"**{len(selected_benchmark_attacks)} attacks** "
         f"against the selected target."
     )
 
@@ -882,6 +908,10 @@ with tab_benchmark:
         type="primary",
         key="run_benchmark_suite_button",
     )
+
+    # -----------------------------------------------------
+    # Execute benchmark
+    # -----------------------------------------------------
 
     if run_benchmark_button:
 
@@ -903,7 +933,9 @@ with tab_benchmark:
         try:
 
             with st.spinner(
-                f"Running {len(attacks)} attacks against "
+                f"Running "
+                f"{len(selected_benchmark_attacks)} "
+                f"attacks against "
                 f"{benchmark_target_name}..."
             ):
 
@@ -915,9 +947,15 @@ with tab_benchmark:
                         target_fn=(
                             benchmark_target_fn
                         ),
-                        attacks=attacks,
-                        evaluator=evaluate_response,
-                        log_file=LOG_FILE,
+                        attacks=(
+                            selected_benchmark_attacks
+                        ),
+                        evaluator=(
+                            evaluate_response
+                        ),
+                        log_file=(
+                            LOG_FILE
+                        ),
                     )
                 )
 
@@ -929,6 +967,10 @@ with tab_benchmark:
                 "benchmark_target_name"
             ] = benchmark_target_name
 
+            st.session_state[
+                "benchmark_suite_name"
+            ] = benchmark_suite
+
         except Exception as exc:
 
             st.error(
@@ -938,6 +980,10 @@ with tab_benchmark:
             st.exception(
                 exc
             )
+
+    # -----------------------------------------------------
+    # Recover benchmark results
+    # -----------------------------------------------------
 
     benchmark_results = (
         st.session_state.get(
@@ -952,16 +998,21 @@ with tab_benchmark:
         )
     )
 
+    benchmark_result_suite = (
+        st.session_state.get(
+            "benchmark_suite_name"
+        )
+    )
+
     if benchmark_results:
 
         st.divider()
 
-        if benchmark_result_target:
-
-            st.markdown(
-                f"### Results — "
-                f"{benchmark_result_target}"
-            )
+        st.markdown(
+            f"### Results — "
+            f"{benchmark_result_suite} "
+            f"→ {benchmark_result_target}"
+        )
 
         # -------------------------------------------------
         # Summary metrics
@@ -1066,6 +1117,54 @@ with tab_benchmark:
             )
 
         # -------------------------------------------------
+        # Calculate precheck bypasses
+        # -------------------------------------------------
+
+        precheck_allows = sum(
+            result.get(
+                "target_metadata",
+                {},
+            ).get(
+                "security_status"
+            )
+            == "allow"
+            for result in benchmark_results
+        )
+
+        precheck_blocks = sum(
+            result.get(
+                "target_metadata",
+                {},
+            ).get(
+                "security_status"
+            )
+            == "block"
+            for result in benchmark_results
+        )
+
+        if (
+            benchmark_result_target
+            == "Secure LangGraph Content Assistant"
+        ):
+
+            (
+                allowed_col,
+                blocked_col,
+            ) = st.columns(
+                2
+            )
+
+            allowed_col.metric(
+                "Precheck bypasses",
+                precheck_allows,
+            )
+
+            blocked_col.metric(
+                "Precheck blocks",
+                precheck_blocks,
+            )
+
+        # -------------------------------------------------
         # Detailed benchmark table
         # -------------------------------------------------
 
@@ -1086,6 +1185,21 @@ with tab_benchmark:
                 "evaluation",
                 {},
             )
+
+            duration = result.get(
+                "duration_ms"
+            )
+
+            if duration is not None:
+
+                duration_display = round(
+                    duration,
+                    1,
+                )
+
+            else:
+
+                duration_display = ""
 
             benchmark_rows.append(
                 {
@@ -1130,12 +1244,8 @@ with tab_benchmark:
                         )
                         or ""
                     ),
-                    "Duration (ms)": round(
-                        result.get(
-                            "duration_ms",
-                            0,
-                        ),
-                        1,
+                    "Duration (ms)": (
+                        duration_display
                     ),
                 }
             )
@@ -1147,7 +1257,7 @@ with tab_benchmark:
         )
 
         # -------------------------------------------------
-        # Per-test details
+        # Individual results
         # -------------------------------------------------
 
         st.subheader(
@@ -1295,7 +1405,7 @@ with tab_benchmark:
                 )
 
                 with st.expander(
-                    "Execution Trace",
+                    "Execution Trace"
                 ):
 
                     st.json(
@@ -1306,13 +1416,20 @@ with tab_benchmark:
         # Download benchmark
         # -------------------------------------------------
 
+        download_name = (
+            "adversarial_benchmark_results.json"
+            if benchmark_result_suite
+            == "Adversarial benchmark"
+            else "basic_benchmark_results.json"
+        )
+
         st.download_button(
             "Download benchmark results as JSON",
             data=json.dumps(
                 benchmark_results,
                 indent=2,
             ),
-            file_name="benchmark_results.json",
+            file_name=download_name,
             mime="application/json",
         )
 
@@ -1482,7 +1599,7 @@ with tab_about:
 
     st.markdown(
         """
-        This application provides two ways to test AI applications:
+        This application provides multiple ways to test AI applications.
 
         ### Saved attacks
 
@@ -1499,22 +1616,19 @@ with tab_about:
 
         **testing goal → semantic retrieval → attack techniques → LLM generation → adversarial prompt**
 
-        The security-testing pipeline is:
+        ### Benchmark suites
 
-        **attack → target → security controls → metadata → evaluator → result**
+        Two benchmark suites are available:
 
-        ### Benchmarking
+        - **Basic saved attacks** — simple known attack patterns used as
+          a smoke test for the evaluation pipeline.
+        - **Adversarial benchmark** — more subtle attacks intended to
+          test indirect injection, obfuscation, false authority,
+          prompt leakage, tool manipulation, and precheck bypasses.
 
-        The Benchmark tab runs the complete saved attack suite
-        against a selected target.
+        The benchmark pipeline is:
 
-        This provides a repeatable baseline that can be used to:
-
-        - compare vulnerable and secured targets
-        - measure PASS / FAIL / REVIEW outcomes
-        - identify which defensive layer stopped an attack
-        - record attack success rates
-        - validate fixes with regression testing
+        **attack suite → target → security layers → evaluator → aggregate metrics**
 
         ### Real target integration
 
@@ -1535,23 +1649,26 @@ with tab_about:
 
         Results are classified as:
 
-        - **PASS** — the attack was blocked or safely refused
+        - **PASS** — the attack was blocked or safely resisted
         - **FAIL** — the application appears to have complied
-        - **REVIEW** — deterministic evidence is insufficient
+        - **REVIEW** — available evidence is insufficient for a confident decision
 
-        The evaluator combines deterministic checks with an
-        LLM-as-a-judge fallback for ambiguous results.
+        The tester also distinguishes between:
+
+        - a precheck blocking an attack
+        - an attack bypassing the precheck but being resisted by the model
+        - output validation stopping unsafe output
+        - a true adversarial success
 
         ### Planned improvements
 
         - RAG-generated benchmark suites
-        - generation of multiple attack variants
-        - attack-category metrics
-        - precheck-bypass metrics
+        - multiple attack variants per category
+        - richer category-level metrics
         - true multi-turn attacks
         - tool-call inspection
         - LangSmith observability
-        - expanded RAG knowledge base
+        - expanded attack knowledge base
         - deployment
         """
     )
