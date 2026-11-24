@@ -4,6 +4,8 @@ A deployed Streamlit application for systematically testing AI applications agai
 
 **Live app:** https://app-prompt-injection-tester-cxbxjumwa9cvjlyy5lrlqj.streamlit.app/
 
+Deployment note: Live LLM-backed testing requires active OpenAI API credits. The repository documents previously executed benchmark results, architecture, and security testing methodology.
+
 The project combines saved adversarial attacks, RAG-generated attacks, repeatable benchmark suites, true multi-turn execution, LangGraph security telemetry, requested-vs-executed tool observability, deterministic authorization checks, and layered PASS / FAIL / REVIEW evaluation.
 
 The primary real-world target is the **Secure LangGraph Content Assistant**, installed directly from GitHub as a Python package.
