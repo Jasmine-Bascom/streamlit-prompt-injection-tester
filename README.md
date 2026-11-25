@@ -8,7 +8,39 @@ A deployed Streamlit application for systematically testing AI applications agai
 
 The project combines saved adversarial attacks, RAG-generated attacks, repeatable benchmark suites, true multi-turn execution, LangGraph security telemetry, requested-vs-executed tool observability, deterministic authorization checks, and layered PASS / FAIL / REVIEW evaluation.
 
-The primary real-world target is the **Secure LangGraph Content Assistant**, installed directly from GitHub as a Python package.
+The primary real-world target is the **[Secure LangGraph Content Assistant](https://github.com/Jasmine-Bascom/secure-langgraph-content-assistant)**, installed directly from GitHub as a Python package.
+
+---
+
+## Table of Contents
+
+**Getting started**
+
+- [Why This Project Exists](#why-this-project-exists)
+- [Current Capabilities](#current-capabilities)
+- [Offline Demo Mode](#offline-demo-mode)
+- [Local Installation](#local-installation)
+- [Run the Application](#run-the-application)
+
+**Security testing**
+
+- [Security Testing Flow](#security-testing-flow)
+- [Benchmark Suites](#benchmark-suites)
+- [Multi-Turn Security Testing](#multi-turn-security-testing)
+- [RAG-Generated Attacks](#rag-generated-attacks)
+- [Target Hardening](#target-hardening)
+- [Deterministic Tool Authorization Policy](#deterministic-tool-authorization-policy)
+- [Layered Evaluation](#layered-evaluation)
+- [LLM-as-a-Judge](#llm-as-a-judge)
+- [Security Engineering Story](#security-engineering-story)
+
+**Engineering and implementation**
+
+- [Project Structure](#project-structure)
+- [Current Architecture](#current-architecture)
+- [Test History and Logs](#test-history-and-logs)
+- [Automated Regression Testing](#automated-regression-testing)
+- [Next Improvements](#next-improvements)
 
 ---
 
@@ -185,6 +217,8 @@ The target is installed through `requirements.txt`:
 ```text
 git+https://github.com/Jasmine-Bascom/secure-langgraph-content-assistant.git@e3720e1c0626b73c8b1e81dd93a0e1f98b13295b
 ```
+
+The target dependency is pinned to a specific Git commit to improve installation reproducibility and prevent unreviewed upstream changes from affecting the test bench.
 
 This removes the old runtime dependency on keeping both repositories next to each other locally.
 
