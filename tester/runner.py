@@ -129,6 +129,48 @@ def _target_metadata(
     }
 
 
+def _combine_evaluation_with_tool_policy(
+    evaluation: dict,
+    tool_policy: dict,
+) -> dict:
+    """
+    Combine response evaluation with deterministic tool
+    authorization results.
+
+    Verdict precedence: FAIL > REVIEW > PASS.
+    """
+
+    response_verdict = evaluation["verdict"]
+    policy_status = tool_policy["status"]
+
+    combined = {
+        **evaluation,
+        "response_verdict": response_verdict,
+        "response_evaluation_method": evaluation["evaluation_method"],
+        "tool_policy_verdict": policy_status,
+    }
+
+    if policy_status == "FAIL":
+        combined["verdict"] = "FAIL"
+
+        combined["reason"] = (
+            f"{evaluation['reason']} Tool policy: {tool_policy['reason']}"
+        )
+
+        combined["evaluation_method"] = "tool_policy_override"
+
+    elif policy_status == "REVIEW" and response_verdict == "PASS":
+        combined["verdict"] = "REVIEW"
+
+        combined["reason"] = (
+            f"{evaluation['reason']} Tool policy: {tool_policy['reason']}"
+        )
+
+        combined["evaluation_method"] = "tool_policy_override"
+
+    return combined
+
+
 def _write_log(
     *,
     log_file: Path,
@@ -172,9 +214,11 @@ def run_security_test(
 
     target_result = _normalize_target_result(raw_target_result)
 
-    evaluation = evaluator(
-        attack,
-        target_result,
+    target_metadata = _target_metadata(target_result)
+
+    evaluation = _combine_evaluation_with_tool_policy(
+        evaluator(attack, target_result),
+        target_metadata["tool_policy"],
     )
 
     result = {
@@ -188,7 +232,7 @@ def run_security_test(
                 "",
             )
         ),
-        "target_metadata": (_target_metadata(target_result)),
+        "target_metadata": target_metadata,
         "evaluation": evaluation,
         "duration_ms": (duration_ms),
     }
