@@ -1,8 +1,10 @@
 import json
 import os
+from functools import partial
 from pathlib import Path
 
 import streamlit as st
+from streamlit.errors import StreamlitSecretNotFoundError
 
 from tester.attacks import load_attacks
 from tester.evaluators import evaluate_response
@@ -21,12 +23,17 @@ def load_streamlit_secrets_into_env():
     the tester and installed LangGraph target can use them.
     """
 
-    for key in (
-        "OPENAI_API_KEY",
-        "TAVILY_API_KEY",
-    ):
-        if key in st.secrets:
-            os.environ[key] = st.secrets[key]
+    try:
+        for key in (
+            "OPENAI_API_KEY",
+            "TAVILY_API_KEY",
+            "AGENT_TEST_BENCH_OFFLINE",
+        ):
+            if key in st.secrets:
+                os.environ.setdefault(key, str(st.secrets[key]))
+
+    except StreamlitSecretNotFoundError:
+        pass
 
 
 load_streamlit_secrets_into_env()
@@ -39,12 +46,24 @@ APP_DIR = Path(__file__).parent
 
 LOG_FILE = APP_DIR / "data" / "test_runs.jsonl"
 
-TARGET_OPTIONS = [
-    "Demo vulnerable agent",
-    "Secure LangGraph Content Assistant",
-]
-
+DEMO_TARGET_NAME = "Demo vulnerable agent"
 SECURE_TARGET_NAME = "Secure LangGraph Content Assistant"
+
+OFFLINE_MODE = (
+    os.getenv("AGENT_TEST_BENCH_OFFLINE", "").strip().lower()
+    in {"1", "true", "yes", "on"}
+    or not os.getenv("OPENAI_API_KEY", "").strip()
+)
+
+TARGET_OPTIONS = [DEMO_TARGET_NAME]
+
+if not OFFLINE_MODE:
+    TARGET_OPTIONS.append(SECURE_TARGET_NAME)
+
+ATTACK_SOURCE_OPTIONS = ["Saved Attack"]
+
+if not OFFLINE_MODE:
+    ATTACK_SOURCE_OPTIONS.append("RAG-Generated Attack")
 
 
 st.set_page_config(
@@ -343,11 +362,54 @@ def get_target_fn(
     return demo_target
 
 
+def get_evaluator(target_name: str):
+    """
+    Keep demo evaluation deterministic and API-independent.
+    """
+    return partial(
+        evaluate_response,
+        use_llm_judge=(not OFFLINE_MODE and target_name == SECURE_TARGET_NAME),
+    )
+
+
 # =========================================================
 # Hero / landing section
 # =========================================================
 
 st.title("🛡️ Agent Security Test Bench")
+
+if OFFLINE_MODE:
+    st.info(
+        "Offline Demo Mode — Explore the security testing "
+        "framework without paid API access."
+    )
+
+    with st.expander(
+        "Available and API-dependent features",
+        expanded=True,
+    ):
+        st.markdown(
+            """
+**Available in offline mode**
+
+- Saved adversarial attacks
+- Deterministic vulnerable demo target
+- Basic, adversarial, and advanced benchmark suites
+- Deterministic PASS / FAIL / REVIEW evaluation
+- Tool-policy evaluation
+- Execution traces and test history
+
+**Implemented features requiring active API access**
+
+- Secure LangGraph Content Assistant testing
+- RAG-generated adversarial attacks using semantic retrieval
+- Stateful multi-turn agent execution
+- Structured LLM-as-a-judge evaluation
+
+These capabilities remain implemented but live execution
+is disabled while the application is in offline mode.
+"""
+        )
 
 st.markdown(
     """
@@ -400,11 +462,16 @@ with st.sidebar:
 
     attack_source = st.radio(
         "Attack source",
-        [
-            "Saved Attack",
-            "RAG-Generated Attack",
-        ],
+        ATTACK_SOURCE_OPTIONS,
     )
+
+    if OFFLINE_MODE:
+        st.caption("🔒 Secure LangGraph target — requires API access.")
+
+        st.caption(
+            "🔒 RAG-Generated Attack — requires API access "
+            "for semantic retrieval and generation."
+        )
 
     selected_attack = None
     rag_result = None
@@ -468,7 +535,7 @@ with st.sidebar:
 
                 st.session_state[editor_key] = rag_result["prompt"]
 
-            except Exception as exc: # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001
                 st.error("RAG generation failed.")
                 st.exception(exc)
 
@@ -656,11 +723,11 @@ with tab_run:
                     target_name=target_name,
                     target_fn=target_fn,
                     attack=attack_for_run,
-                    evaluator=evaluate_response,
+                    evaluator=get_evaluator(target_name),
                     log_file=LOG_FILE,
                 )
 
-        except Exception as exc: # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
             st.error("The target application could not be run.")
             st.exception(exc)
 
@@ -890,7 +957,7 @@ with tab_benchmark:
                     target_name=(benchmark_target),
                     target_fn=(benchmark_fn),
                     attacks=(selected_suite),
-                    evaluator=(evaluate_response),
+                    evaluator=get_evaluator(benchmark_target),
                     log_file=(LOG_FILE),
                 )
 
@@ -900,7 +967,7 @@ with tab_benchmark:
 
             st.session_state["benchmark_target_name"] = benchmark_target
 
-        except Exception as exc: # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
             st.error("Benchmark failed.")
             st.exception(exc)
 
@@ -1262,10 +1329,20 @@ with tab_multi_turn:
                 language=None,
             )
 
-    if st.button(
-        "Run Multi-Turn Test",
-        type="primary",
-        key="run_multi_turn",
+    if OFFLINE_MODE:
+        st.info(
+            "Live multi-turn testing requires active API access. "
+            "You can still inspect the saved conversation scenarios."
+        )
+
+    if (
+        st.button(
+            "Run Multi-Turn Test",
+            type="primary",
+            key="run_multi_turn",
+            disabled=OFFLINE_MODE,
+        )
+        and not OFFLINE_MODE
     ):
         try:
             with st.spinner("Running stateful adversarial conversation..."):
@@ -1279,7 +1356,7 @@ with tab_multi_turn:
 
             st.session_state["multi_turn_result"] = multi_result
 
-        except Exception as exc: # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
             st.error("Multi-turn test failed.")
             st.exception(exc)
 

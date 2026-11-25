@@ -4,7 +4,7 @@ A deployed Streamlit application for systematically testing AI applications agai
 
 **Live app:** https://app-prompt-injection-tester-cxbxjumwa9cvjlyy5lrlqj.streamlit.app/
 
-Deployment note: Live LLM-backed testing requires active OpenAI API credits. The repository documents previously executed benchmark results, architecture, and security testing methodology.
+**Deployment note:** The application supports an API-independent Offline Demo Mode. Visitors can run saved attacks, execute demo benchmarks, and inspect security evaluation results without paid API access. Live LangGraph testing, RAG-generated attacks, multi-turn execution, and LLM judging remain implemented but require active API access.
 
 The project combines saved adversarial attacks, RAG-generated attacks, repeatable benchmark suites, true multi-turn execution, LangGraph security telemetry, requested-vs-executed tool observability, deterministic authorization checks, and layered PASS / FAIL / REVIEW evaluation.
 
@@ -1058,11 +1058,13 @@ A separate sibling checkout of the target is no longer required to run the teste
 
 ## Secrets and Environment Variables
 
-The project currently requires:
+Live LLM-backed functionality requires:
 
 ```text
 OPENAI_API_KEY
 ```
+
+Offline Demo Mode does not require API credentials.
 
 ### Local Streamlit development
 
@@ -1091,6 +1093,61 @@ OPENAI_API_KEY = "your-key-here"
 ```
 
 No API key is stored in the repository.
+
+---
+
+## Offline Demo Mode
+
+The application supports deterministic security testing
+without paid LLM API access.
+
+Available offline functionality includes:
+
+- saved adversarial attacks
+- the intentionally vulnerable deterministic demo target
+- basic, adversarial, and advanced benchmark suites
+- deterministic PASS / FAIL / REVIEW evaluation
+- route-specific tool-policy evaluation
+- structured execution traces and test history
+
+Ambiguous demo responses receive REVIEW rather than
+triggering an LLM judge.
+
+Live LangGraph testing, RAG-generated attacks, stateful
+multi-turn execution, and LLM judging remain implemented
+but are unavailable in offline mode.
+
+The interface explicitly identifies these API-dependent
+capabilities.
+
+### Run locally in offline mode
+
+```bash
+AGENT_TEST_BENCH_OFFLINE=1 python -m streamlit run app.py
+```
+
+Offline mode also activates automatically when no OpenAI
+API key is configured.
+
+### Configure Streamlit Community Cloud
+
+Add the following setting to the application's secrets:
+
+```toml
+AGENT_TEST_BENCH_OFFLINE = "1"
+```
+
+This explicitly enables offline mode even if an existing
+API key remains configured.
+
+To restore live functionality, remove or disable the
+offline setting and configure valid API credentials.
+
+The presence of an API key does not guarantee sufficient
+API credits.
+
+Offline demo results validate the testing framework,
+not the security behavior of a live LLM.
 
 ---
 
