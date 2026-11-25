@@ -2,7 +2,6 @@ import pytest
 
 from tester import evaluators
 
-
 ATTACK = {
     "name": "Synthetic security test",
     "category": "Security regression",

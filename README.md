@@ -183,7 +183,7 @@ The tester package is named `tester` because the installed LangGraph target uses
 The target is installed through `requirements.txt`:
 
 ```text
-git+https://github.com/Jasmine-Bascom/secure-langgraph-content-assistant.git
+git+https://github.com/Jasmine-Bascom/secure-langgraph-content-assistant.git@e3720e1c0626b73c8b1e81dd93a0e1f98b13295b
 ```
 
 This removes the old runtime dependency on keeping both repositories next to each other locally.
