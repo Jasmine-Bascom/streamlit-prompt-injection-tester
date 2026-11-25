@@ -65,7 +65,7 @@ The application contains five main tabs:
 
 ### Attack sources
 
-Two interactive attack modes are available:
+Two interactive attack modes are supported in live mode:
 
 - **Saved Attack**
 - **RAG-Generated Attack**
@@ -92,7 +92,7 @@ This allows later turns to depend on earlier conversation state instead of merel
 
 ### Target applications
 
-Two targets are available:
+Two targets are supported in live mode:
 
 - `Demo vulnerable agent`
 - `Secure LangGraph Content Assistant`
@@ -134,6 +134,8 @@ The current application supports:
 - automatic detection of unauthorized tool executions
 - integration of deterministic tool-policy results into individual and benchmark security verdicts
 - automated regression tests for combined verdict precedence
+- direct unit tests for route-specific tool authorization
+- API-independent offline demo mode
 - deterministic evaluation for clear security outcomes
 - structured LLM-as-a-judge fallback
 - JSONL test logging
@@ -161,14 +163,17 @@ streamlit-prompt-injection-tester/
 │   ├── multi_turn_attacks.json
 │   ├── attack_knowledge.json
 │   └── test_runs.jsonl
-└── tester/
-    ├── __init__.py
-    ├── attacks.py
-    ├── evaluators.py
-    ├── rag.py
-    ├── runner.py
-    ├── targets.py
-    └── tool_policy.py
+├── tester/
+│   ├── __init__.py
+│   ├── attacks.py
+│   ├── evaluators.py
+│   ├── rag.py
+│   ├── runner.py
+│   ├── targets.py
+│   └── tool_policy.py
+└── tests/
+    ├── test_runner.py
+    └── test_tool_policy.py
 ```
 
 The tester package is named `tester` because the installed LangGraph target uses a Python package named `src`.
@@ -362,7 +367,7 @@ The advanced suite contains twelve harder scenarios including:
 - authority-by-format attacks
 - nested forwarded-email injection
 
-The hardened target currently passes:
+The hardened target previously achieved:
 
 ```text
 12 / 12
@@ -1068,6 +1073,8 @@ Offline Demo Mode does not require API credentials.
 
 ### Local Streamlit development
 
+Skip this credential configuration if you only intend to use Offline Demo Mode.
+
 Create:
 
 ```text
@@ -1269,15 +1276,31 @@ That progression demonstrates:
 
 ## Automated Regression Testing
 
-The test bench includes API-independent regression tests for
-the security runner and combined tool-policy verdicts.
+The test bench includes API-independent automated tests
+for the security runner and deterministic tool authorization.
 
-The tests cover:
+### Security runner tests (10 cases)
 
 - all nine combinations of response and tool-policy verdicts
 - preservation of original evaluation metadata
 - structured JSONL result logging
 - propagation of combined verdicts into benchmark results
+
+### Tool authorization tests (21 cases)
+
+- route-specific allowlists for all supported routes
+- authorized tool requests and executions
+- unauthorized requests requiring REVIEW
+- unauthorized executions producing FAIL
+- unauthorized execution without a recorded request
+- mixed authorized and unauthorized tool activity
+- conservative authorization defaults for unknown or missing routes
+- precedence of execution violations over request violations
+- missing tool metadata
+- current handling of malformed tool-call entries
+
+Malformed metadata tests document existing behavior rather
+than establishing that incomplete telemetry is trustworthy.
 
 Install the development tools if needed:
 
@@ -1288,17 +1311,17 @@ python -m pip install pytest ruff
 Run the regression tests:
 
 ```bash
-python -m pytest tests/test_runner.py -v
+python -m pytest -v
 ```
 
 Check linting and formatting:
 
 ```bash
-python -m ruff check tester/runner.py tests/test_runner.py
-python -m ruff format --check tester/runner.py tests/test_runner.py
+python -m ruff check app.py tester/runner.py tests/
+python -m ruff format --check app.py tester/runner.py tests/
 ```
 
-All 10 regression tests passed during local verification.
+The automated test suite contains 31 API-independent test cases.
 
 The Streamlit application was also manually verified using
 the deterministic demo target. The basic saved attack suite
