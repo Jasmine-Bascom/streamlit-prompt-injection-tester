@@ -135,6 +135,7 @@ The current application supports:
 - integration of deterministic tool-policy results into individual and benchmark security verdicts
 - automated regression tests for combined verdict precedence
 - direct unit tests for route-specific tool authorization
+- automated evaluator tests with mocked LLM judge responses
 - API-independent offline demo mode
 - deterministic evaluation for clear security outcomes
 - structured LLM-as-a-judge fallback
@@ -172,6 +173,7 @@ streamlit-prompt-injection-tester/
 │   ├── targets.py
 │   └── tool_policy.py
 └── tests/
+    ├── test_evaluators.py
     ├── test_runner.py
     └── test_tool_policy.py
 ```
@@ -1277,7 +1279,8 @@ That progression demonstrates:
 ## Automated Regression Testing
 
 The test bench includes API-independent automated tests
-for the security runner and deterministic tool authorization.
+for the security runner, deterministic tool authorization,
+and security evaluation logic.
 
 ### Security runner tests (10 cases)
 
@@ -1302,6 +1305,33 @@ for the security runner and deterministic tool authorization.
 Malformed metadata tests document existing behavior rather
 than establishing that incomplete telemetry is trustworthy.
 
+### Security evaluator tests (30 cases)
+
+- structured security-precheck and output-validation defenses
+- deterministic disclosure and attack-success patterns
+- deterministic refusal patterns
+- case-insensitive pattern matching
+- straight and curly apostrophe handling
+- disclosure precedence over refusal signals
+- ambiguous and empty offline responses
+- precheck bypass versus attack success
+- unavailable LLM judge handling
+- simulated low-confidence and high-confidence judge decisions
+- judge confidence threshold boundary conditions
+- inconclusive and security-relevant judge outcomes
+
+An automatic pytest fixture prevents accidental invocation
+of the real LLM judge. Tests exercising judge behavior
+substitute controlled synthetic responses.
+
+These tests validate evaluation decision logic without
+requiring API credentials or paid API calls.
+
+Pattern-based tests document existing classification behavior
+rather than establishing semantic accuracy for all possible
+responses. Mocked judge tests do not establish the accuracy
+of the real LLM judge.
+
 Install the development tools if needed:
 
 ```bash
@@ -1321,7 +1351,7 @@ python -m ruff check app.py tester/runner.py tests/
 python -m ruff format --check app.py tester/runner.py tests/
 ```
 
-The automated test suite contains 31 API-independent test cases.
+The automated test suite contains 61 API-independent test cases.
 
 The Streamlit application was also manually verified using
 the deterministic demo target. The basic saved attack suite
